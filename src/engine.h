@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include "movegen.h"
 #include "position.h"
 
 class Engine {
@@ -11,11 +12,12 @@ class Engine {
     ~Engine() = default;
 
     int32_t eval();
-    void search();
+    Move search(int depth);
 
   private:
     Position position;
     State gameState;
+    MoveGen moveGenerator;
 
     int32_t material_score();
 };

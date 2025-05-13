@@ -11,6 +11,10 @@
 
 struct State {
   bool white = 1;
+  bool castling_rights = 1;
+  int rule50 = 0; // "halfmoves" 
+  int fullMoves = 1;
+  uint64_t enPassant;
 };
 
 // OBS! EMPTY not counted

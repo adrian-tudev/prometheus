@@ -7,7 +7,7 @@ constexpr int32_t MAX_EVAL = 1e5;
 
 Engine::Engine() {
   position.set(STARTING_FEN);
-  position.print();
+  // position.print();
 }
 
 int32_t Engine::eval() {
