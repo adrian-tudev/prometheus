@@ -9,7 +9,7 @@
 class Engine {
   public:
     Engine();
-    ~Engine() = default;
+    ~Engine();
 
     int32_t eval();
     Move search(int depth);

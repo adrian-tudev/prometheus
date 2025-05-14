@@ -18,7 +18,8 @@ struct Move {
 /*
  *  TODO
  *
- * - precomputed movement bitboards
+ * - remove active bitboard square at current position
+ * - precomputed movement bitboards (king?)
  * 
  */
 

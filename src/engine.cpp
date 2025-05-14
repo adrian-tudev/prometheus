@@ -28,3 +28,7 @@ int32_t Engine::material_score() {
   score += 900 * (position.count_pieces(W_QUEEN) - position.count_pieces(B_QUEEN));
   return score;
 }
+
+Engine::~Engine() {
+  std::cout << "\033[1;31mshutting down prometheus.\033[0m" << std::endl;
+}
