@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <string>
 
@@ -30,8 +31,8 @@ class Position {
   public:
     Position() = default;
     void set(const std::string& FEN);
-    void move();
-    void undo_move();
+    void do_move(Move move);
+    void undo_move(Move move);
 
     std::string fen() const;
     void print() const;
@@ -40,17 +41,17 @@ class Position {
     inline Bitboard get_bitboard(PieceType type) const;
   private:
     void set_bitboard(PieceType type);
-    Bitboard pieces[pieceTypes];
+    Bitboard piece_bitboard[pieceTypes];
     PieceType board[8][8];
 };
 
 inline Bitboard Position::get_bitboard(PieceType type) const {
   assert(type != PieceType::EMPTY);
-  return pieces[type];
+  return piece_bitboard[type];
 }
 
 inline int Position::count_pieces(PieceType type) const {
-  return __builtin_popcountll(pieces[type]);
+  return __builtin_popcountll(piece_bitboard[type]);
 }
 
 #endif

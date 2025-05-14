@@ -3,6 +3,20 @@
 
 const std::string charToPiece = "pnbrqkPNBRQK";
 
+void Position::do_move(Move move) {
+  uint8_t idx = std::log2(move.target);
+  uint8_t dest_idx = std::log2(move.dest);
+  uint8_t r = idx / 8;
+  uint8_t c = idx % 8;
+  PieceType pc = board[r][c];
+
+  Bitboards::clear_bit(piece_bitboard[pc], idx);
+  Bitboards::set_bit(piece_bitboard[pc], dest_idx);
+}
+
+void Position::undo_move(Move move) {
+}
+
 void Position::set(const std::string& FEN) {
   int rank = 7;
   int file = 0;
@@ -45,7 +59,7 @@ void Position::set_bitboard(PieceType type) {
       cnt++;
     }
   }
-  pieces[type] = bitboard;
+  piece_bitboard[type] = bitboard;
 }
 
 void Position::print() const {

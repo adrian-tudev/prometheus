@@ -6,7 +6,6 @@ const uint64_t hor_mask = 0xFFULL;
 const uint64_t ver_mask = 0x0101010101010101ULL;
 
 MoveGen::MoveGen() {
-
   // precompute pseudo-legal moves for all pieces
   compute_sliding_pieces();
   compute_nonsliding_pieces();
@@ -14,24 +13,39 @@ MoveGen::MoveGen() {
 
 void MoveGen::compute_nonsliding_pieces() {
   for (uint8_t square = 0; square < 64; square++) {
-    
     // pawn movement
     pawnMovement[0][square] = 0;
     pawnMovement[1][square] = 0;
 
     // no moves when reaching promotion rank
-    if (square / 8 < 7)
-      pawnMovement[0][square] |= 1ULL << (square + 8);
+    pawnMovement[0][square] |= 1ULL << (square + 8);
+    if (square / 8 == 1)
+      pawnMovement[0][square] |= (1ULL << (square + 16));
     
     if (square / 8 > 0)
       pawnMovement[1][square] |= 1ULL << (square - 8);
-
-    if (square / 8 == 1) {
-      pawnMovement[0][square] |= (1ULL << (square + 16));
-    }
+    if (square / 8 == 6)
+      pawnMovement[1][square] |= (1ULL << (square - 16));
 
     // knight movement
+    knightMovement[square] = 0;
+    Bitboard knightBox = 0;
+    for (uint8_t y = std::max(square / 8 - 2, 0); y <= std::min(square / 8 + 2, 7); y++) {
+      for (uint8_t x = std::max(square % 8 - 2, 0); x <= std::min(square % 8 + 2, 7); x++) {
+        knightBox |= (1ULL << (y * 8 + x));
+      }
+    }
+    int8_t knightDirs[] = {-17, -15, -10, -6, 6, 10, 15, 17};
+    for (int8_t dir : knightDirs) {
+      knightMovement[square] |= knightBox & (1ULL << (square + dir));
+    }
 
+    kingMovement[square] = 0;
+    for (uint8_t y = std::max(square / 8 - 1, 0); y <= std::min(square / 8 + 1, 7); y++) {
+      for (uint8_t x = std::max(square % 8 - 1, 0); x <= std::min(square % 8 + 1, 7); x++) {
+        kingMovement[square] |= 1ULL << (y * 8 + x);
+      }
+    }
   }
 }
 

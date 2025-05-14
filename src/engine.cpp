@@ -7,7 +7,10 @@ constexpr int32_t MAX_EVAL = 1e5;
 
 Engine::Engine() {
   position.set(STARTING_FEN);
-  // position.print();
+  position.print();
+  
+  Move move = {(Square)(1ULL << 0), (Square)(1ULL << 16)};
+  position.do_move(move);
 }
 
 int32_t Engine::eval() {
@@ -23,7 +26,7 @@ int32_t Engine::material_score() {
 
   score += 100 * (position.count_pieces(W_PAWN) - position.count_pieces(B_PAWN));
   score += 300 * (position.count_pieces(W_KNIGHT) - position.count_pieces(B_KNIGHT));
-  score += 350 * (position.count_pieces(W_BISHOP) - position.count_pieces(B_BISHOP));
+  score += 320 * (position.count_pieces(W_BISHOP) - position.count_pieces(B_BISHOP));
   score += 500 * (position.count_pieces(W_ROOK) - position.count_pieces(B_ROOK));
   score += 900 * (position.count_pieces(W_QUEEN) - position.count_pieces(B_QUEEN));
   return score;

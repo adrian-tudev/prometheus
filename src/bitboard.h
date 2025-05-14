@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <iostream>
 
-using Bitboard = uint64_t;
+#include "types.h"
 
 namespace Bitboards {
 
