@@ -6,10 +6,11 @@ const std::string STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 constexpr int32_t MAX_EVAL = 1e5;
 
 Engine::Engine() {
+  Bitboards::init();
   position.set(STARTING_FEN);
-  position.print();
   
-  Move move = {(Square)(1ULL << 0), (Square)(1ULL << 16)};
+  position.print();
+  Move move = {(Square)(1ULL << 8), (Square)(1ULL << 24)};
   position.do_move(move);
 }
 

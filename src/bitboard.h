@@ -8,11 +8,17 @@
 
 #include "types.h"
 
+// precomputed bitboards
+static Bitboard pieceMovement[pieceTypes][64];
+
 namespace Bitboards {
 
-  Bitboard set_bit(Bitboard board, uint8_t index);
-  Bitboard clear_bit(Bitboard board, uint8_t index);
+  void init();
+  void sliding_pieces();
+  void nonsliding_pieces();
 
+  Bitboard clear_bit(Bitboard board, int square);
+  Bitboard set_bit(Bitboard board, int square);
   void print(Bitboard board);
   void print_raw(Bitboard board);
 

@@ -8,6 +8,7 @@
 #include <string>
 
 #include "bitboard.h"
+#include "types.h"
 #include "utils.h"
 
 struct State {
@@ -16,15 +17,6 @@ struct State {
   int rule50 = 0; // "halfmoves" 
   int fullMoves = 1;
   uint64_t enPassant;
-};
-
-// OBS! EMPTY not counted
-constexpr uint8_t pieceTypes = 12;
-
-enum PieceType { 
-  B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
-  W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-  EMPTY
 };
 
 class Position {

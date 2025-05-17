@@ -5,13 +5,18 @@ const std::string charToPiece = "pnbrqkPNBRQK";
 
 void Position::do_move(Move move) {
   uint8_t idx = std::log2(move.target);
-  uint8_t dest_idx = std::log2(move.dest);
   uint8_t r = idx / 8;
   uint8_t c = idx % 8;
   PieceType pc = board[r][c];
 
   Bitboards::clear_bit(piece_bitboard[pc], idx);
+
+  uint8_t dest_idx = std::log2(move.dest);
   Bitboards::set_bit(piece_bitboard[pc], dest_idx);
+  board[r][c] = PieceType::EMPTY;
+  r = dest_idx / 8;
+  c = dest_idx % 8;
+  board[r][c] = pc;
 }
 
 void Position::undo_move(Move move) {
