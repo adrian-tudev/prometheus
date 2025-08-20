@@ -12,11 +12,11 @@ class Engine {
     ~Engine();
 
     int32_t eval();
-    Move search(int depth);
+    Move search(uint8_t depth);
 
   private:
-    Position position;
     State gameState;
+    Position position;
     MoveGen moveGenerator;
 
     int32_t material_score();

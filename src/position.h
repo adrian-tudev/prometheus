@@ -22,6 +22,7 @@ struct State {
 class Position {
   public:
     Position() = default;
+
     void set(const std::string& FEN);
     void do_move(Move move);
     void undo_move(Move move);
@@ -29,8 +30,12 @@ class Position {
     std::string fen() const;
     void print() const;
 
+    // return position of all pieces of given color
+    Bitboard all_pieces(Color color) const;
+
     inline int count_pieces(PieceType type) const;
     inline Bitboard get_bitboard(PieceType type) const;
+
   private:
     void set_bitboard(PieceType type);
     Bitboard piece_bitboard[pieceTypes];

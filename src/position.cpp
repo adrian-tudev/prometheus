@@ -22,6 +22,16 @@ void Position::do_move(Move move) {
 void Position::undo_move(Move move) {
 }
 
+Bitboard Position::all_pieces(Color color) const {
+  Bitboard all = 0;
+  int start = color == WHITE ? W_PAWN : B_PAWN;
+  int end = start + 6;
+  for (int i = start; i < end; i++) {
+    all |= piece_bitboard[i];
+  }
+  return all;
+}
+
 void Position::set(const std::string& FEN) {
   int rank = 7;
   int file = 0;
@@ -55,7 +65,7 @@ void Position::set_bitboard(PieceType type) {
   assert(type != PieceType::EMPTY);
   Bitboard bitboard = 0;
 
-  uint64_t cnt = 0;
+  uint8_t cnt = 0;
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
       if (board[i][j] == type) {

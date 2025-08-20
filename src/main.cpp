@@ -1,9 +1,8 @@
 #include <iostream>
-
 #include "engine.h"
 
 int main(int argc, char* args[]) {
-  if (argc > 1) {
+  if (argc > 1 && std::string(args[1]) == "-h") {
     std::cout << "usage: prometheus [-h] [-depth depth]" << std::endl;
     return 1;
   }

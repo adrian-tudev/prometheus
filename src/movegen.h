@@ -12,7 +12,7 @@ class MoveGen {
     MoveGen();
     ~MoveGen() = default;
 
-    std::vector<Move> generate_moves(PieceType piece, Square square);
+    std::vector<Move> generate_moves(PieceType piece, Square square, Bitboard white, Bitboard black);
   private:
 };
 

@@ -8,10 +8,11 @@ constexpr int32_t MAX_EVAL = 1e5;
 Engine::Engine() {
   Bitboards::init();
   position.set(STARTING_FEN);
-  
   position.print();
-  Move move = {(Square)(1ULL << 8), (Square)(1ULL << 24)};
-  position.do_move(move);
+
+  // TESTS
+  auto rookMoves = moveGenerator.generate_moves(W_ROOK, 0, position.all_pieces(WHITE), position.all_pieces(BLACK));
+  assert(rookMoves.size() == 6);
 }
 
 int32_t Engine::eval() {
@@ -20,6 +21,9 @@ int32_t Engine::eval() {
   score += material_score();
 
   return gameState.white ? score : -score;
+}
+
+Move Engine::search(uint8_t depth) {
 }
 
 int32_t Engine::material_score() {

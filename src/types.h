@@ -1,13 +1,17 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <cassert>
 #include <cstdint>
+#include <vector>
 
 using Bitboard = uint64_t;
 using Square = uint64_t;
 
-// OBS! EMPTY not counted
+// OBS! EMPTY square not counted
 constexpr uint8_t pieceTypes = 12;
+
+enum Color { BLACK, WHITE };
 
 enum PieceType { 
   B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
@@ -19,5 +23,10 @@ struct Move {
   Square target;
   Square dest;
 };
+
+inline bool is_white(PieceType type) {
+  assert(type != EMPTY);
+  return type >= W_PAWN && type <= W_KING;
+}
 
 #endif

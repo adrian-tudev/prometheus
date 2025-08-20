@@ -2,8 +2,8 @@
 #define UTILS_H
 
 #include <iostream>
-#include <string>
 #include <ctime>
+#include <string>
 
 
 #define LOG(level, msg) do { \
@@ -12,6 +12,5 @@
     std::strftime(buf, sizeof(buf), "%H:%M:%S", std::localtime(&now)); \
     std::cerr << "[" << buf << "] [" << level << "] " << msg << std::endl; \
 } while(0)
-
 
 #endif
