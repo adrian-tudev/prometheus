@@ -11,7 +11,15 @@ Engine::Engine() {
   position.print();
 
   // TESTS
+
+  Square sq = 27;
   auto rookMoves = moveGenerator.generate_moves(W_ROOK, 0, position.all_pieces(WHITE), position.all_pieces(BLACK));
+  auto queenMoves = moveGenerator.generate_moves(W_QUEEN, sq, position.all_pieces(WHITE), position.all_pieces(BLACK));
+  printf("Queen moves from %s:\n", format(sq).c_str());
+  for (auto moves : queenMoves) {
+    printf("to %s\n", format(moves.dest).c_str());
+  }
+  std::cout << queenMoves.size() << " moves found.\n";
   assert(rookMoves.size() == 6);
 }
 

@@ -6,20 +6,21 @@ MoveGen::MoveGen() {
 
 }
 
-std::vector<Move> MoveGen::generate_moves(PieceType piece, Square square, Bitboard allWhite, Bitboard allBlack) {
+std::vector<Move> MoveGen::generate_moves(PieceType piece, Square sq, const Position& pos) {
+  Bitboard allWhite = pos.all_pieces(WHITE);
+  Bitboard allBlack = pos.all_pieces(BLACK);
   std::vector<Move> moves;
   
-  // pseudo-legal moves
-  Bitboard legalSquares = pieceMovement[piece][square];
+  Bitboard legalSquares = attackMasks[piece][sq];
 
   // can't eat own pieces
   Bitboard occupied = is_white(piece) ? allWhite : allBlack;
   legalSquares &= ~occupied;
 
   // Bitboard to Moves
-  for (int i = 0; i < 64; i++) {
-    if (legalSquares & (1ULL << i)) {
-      Move move = {(Square)(1ULL << square), (Square)(1ULL << i)};
+  for (Square square = 0; square < 64; square++) {
+    if (legalSquares & (1ULL << square)) {
+      Move move = {sq, square};
       moves.push_back(move);
     }
   }

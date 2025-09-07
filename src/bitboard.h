@@ -8,8 +8,7 @@
 
 #include "types.h"
 
-// precomputed bitboards
-extern Bitboard pieceMovement[pieceTypes][64];
+extern Bitboard attackMasks[pieceTypes][64];
 
 namespace Bitboards {
 

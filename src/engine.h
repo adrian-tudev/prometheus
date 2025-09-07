@@ -5,6 +5,7 @@
 
 #include "movegen.h"
 #include "position.h"
+#include "utils.h"
 
 class Engine {
   public:

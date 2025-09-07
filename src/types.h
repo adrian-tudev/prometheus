@@ -3,10 +3,9 @@
 
 #include <cassert>
 #include <cstdint>
-#include <vector>
 
 using Bitboard = uint64_t;
-using Square = uint64_t;
+using Square = uint8_t;
 
 // OBS! EMPTY square not counted
 constexpr uint8_t pieceTypes = 12;
@@ -20,8 +19,8 @@ enum PieceType {
 };
 
 struct Move {
-  Square target;
-  Square dest;
+  uint8_t target;
+  uint8_t dest;
 };
 
 inline bool is_white(PieceType type) {

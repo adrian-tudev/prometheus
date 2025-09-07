@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bitboard.h"
+#include "position.h"
 #include "types.h"
 
 class MoveGen {
@@ -12,7 +13,7 @@ class MoveGen {
     MoveGen();
     ~MoveGen() = default;
 
-    std::vector<Move> generate_moves(PieceType piece, Square square, Bitboard white, Bitboard black);
+    std::vector<Move> generate_moves(PieceType piece, Square sq, const Position& pos);
   private:
 };
 
