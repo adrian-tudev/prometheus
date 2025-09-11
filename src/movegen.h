@@ -7,6 +7,7 @@
 #include "bitboard.h"
 #include "position.h"
 #include "types.h"
+#include "utils.h"
 
 class MoveGen {
   public:

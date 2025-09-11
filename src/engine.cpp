@@ -10,17 +10,13 @@ Engine::Engine() {
   position.set(STARTING_FEN);
   position.print();
 
-  // TESTS
-
-  Square sq = 27;
-  auto rookMoves = moveGenerator.generate_moves(W_ROOK, 0, position.all_pieces(WHITE), position.all_pieces(BLACK));
-  auto queenMoves = moveGenerator.generate_moves(W_QUEEN, sq, position.all_pieces(WHITE), position.all_pieces(BLACK));
-  printf("Queen moves from %s:\n", format(sq).c_str());
-  for (auto moves : queenMoves) {
-    printf("to %s\n", format(moves.dest).c_str());
-  }
-  std::cout << queenMoves.size() << " moves found.\n";
-  assert(rookMoves.size() == 6);
+  // // TESTS
+  // position.set("rnbqkbnr/pp4pp/2p1pp2/1Q1pB3/3P4/8/PPP1PPPP/RN2KBNR");
+  // position.print();
+  // {
+  //   Square sq = 33; // e5
+  //   auto moves = moveGenerator.generate_moves(W_QUEEN, sq, position);
+  // }
 }
 
 int32_t Engine::eval() {

@@ -5,20 +5,69 @@ using namespace std;
 const uint64_t hor_mask = 0xFFULL;
 const uint64_t ver_mask = 0x0101010101010101ULL;
 
+const int MAX_ROOK_SQUARES = 14;
+const int MAX_BISHOP_SQUARES = 13;
+
+// forward declaring
 void sliding_pieces();
 void nonsliding_pieces();
-
-Bitboard attackMasks[pieceTypes][64];
+std::vector<Bitboard> gen_blockers(Bitboard movementMask);
+Bitboard legal_rook_squares(Square sq, Bitboard blockers);
+Bitboard legal_bishop_squares(Square sq, Bitboard blockers);
 
 // precomputed pseudo-legal bitboards for all pieces
-Bitboard movementMasks[pieceTypes][64];
 
+Bitboard movementMasks[pieceTypes][64];
+std::map<std::pair<Square, Bitboard>, Bitboard> rookAttack;
+std::map<std::pair<Square, Bitboard>, Bitboard> bishopAttack;
 namespace Bitboards {
   void init() {
     printf("Computing bitboards...\n");
     sliding_pieces();
     nonsliding_pieces();
+
+    // precompute blockers
+    for (Square sq = 0; sq < 64; sq++) {
+      std::vector<Bitboard> rook_blockers = gen_blockers(movementMasks[W_ROOK][sq]);
+      for (Bitboard pattern : rook_blockers) {
+        Bitboard legalMoves = legal_rook_squares(sq, pattern);
+        rookAttack[{sq, pattern}] = legalMoves;
+      }
+
+      std::vector<Bitboard> bishop_blockers = gen_blockers(movementMasks[W_BISHOP][sq]);
+      for (Bitboard pattern : bishop_blockers) {
+        Bitboard legalMoves = legal_bishop_squares(sq, pattern);
+        bishopAttack[{sq, pattern}] = legalMoves;
+      }
+    }
     printf("Computed bitboards.\n");
+
+    /*
+    { // TESTS
+      auto rook_blockers = gen_blockers(movementMasks[W_ROOK][27]);
+      for (int i = 0; i < 5; i++) {
+        printf("======== Pattern %d =======\n", i);
+        print(rook_blockers[i]);
+        printf("\n");
+        print(legal_rook_squares(27, rook_blockers[i]));
+        printf("\n");
+      }
+
+      auto bishop_blockers = gen_blockers(movementMasks[W_BISHOP][27]);
+      for (int i = 4; i < 10; i++) {
+        printf("======== Pattern %d =======\n", i);
+        print(bishop_blockers[i]);
+        printf("\n");
+        print(legal_bishop_squares(27, bishop_blockers[i]));
+        printf("\n");
+      }
+      printf("======== Pattern %d =======\n", 0b110000000);
+      print(bishop_blockers[0b110000000]);
+      printf("\n");
+      print(legal_bishop_squares(27, bishop_blockers[0b110000000]));
+      printf("\n");
+    } // TESTS
+    */
   }
 
   void print(Bitboard board) {
@@ -27,8 +76,9 @@ namespace Bitboards {
       for (int j = 7; j >= 0; j--) {
         cout << s[i * 8 + j];
       }
-      cout << endl;
+      cout << '\n';
     }
+    cout << endl;
   }
 
   void print_raw(Bitboard board) {
@@ -119,6 +169,7 @@ void nonsliding_pieces() {
     if (square / 8 == 1)
       movementMasks[W_PAWN][square] |= (1ULL << (square + 16));
     
+    // no moves when reaching promotion rank
     if (square / 8 > 0)
       movementMasks[B_PAWN][square] |= 1ULL << (square - 8);
     if (square / 8 == 6)
@@ -146,4 +197,87 @@ void nonsliding_pieces() {
     movementMasks[B_KNIGHT][square] = movementMasks[W_KNIGHT][square];
     movementMasks[B_KING][square] = movementMasks[W_KING][square];
   }
+}
+
+// Given a movementMask add 1s into the places of the blockers
+std::vector<Bitboard> gen_blockers(Bitboard movementMask) {
+  std::vector<int> idc;
+  for (int i = 0; i < 64; i++) {
+    if (movementMask & (1ULL << i)) {
+      idc.push_back(i);
+    }
+  }
+  int possibleSquares = __builtin_popcountll(movementMask);
+  // number of possible blockers
+  int subsets = 1 << possibleSquares;
+  std::vector<Bitboard> blockers(subsets, 0);
+  for (int pattern = 0; pattern < subsets; pattern++) {
+    for(int i = 0; i < idc.size(); i++) {
+      if (pattern & (1ULL << i)) {
+        blockers[pattern] |= (1ULL << idc[i]);
+      }
+    }
+  }
+  return blockers;
+}
+
+// given a blocker configuration, return all legal moves for a rook on sq
+Bitboard legal_rook_squares(Square sq, Bitboard blockers) {
+  Bitboard legalMoves = 0;
+
+  int rank = sq / 8;
+  int file = sq % 8;
+
+  // right
+  for (int f = file + 1; f < 8; f++) {
+    legalMoves |= (1ULL << (rank * 8 + f));
+    if (blockers & (1ULL << (rank * 8 + f))) break;
+  }
+  // left
+  for (int f = file - 1; f >= 0; f--) {
+    legalMoves |= (1ULL << (rank * 8 + f));
+    if (blockers & (1ULL << (rank * 8 + f))) break;
+  }
+  // up
+  for (int r = rank + 1; r < 8; r++) {
+    legalMoves |= (1ULL << (r * 8 + file));
+    if (blockers & (1ULL << (r * 8 + file))) break;
+  }
+  // down
+  for (int r = rank - 1; r >= 0; r--) {
+    legalMoves |= (1ULL << (r * 8 + file));
+    if (blockers & (1ULL << (r * 8 + file))) break;
+  }
+
+  return legalMoves;
+}
+
+Bitboard legal_bishop_squares(Square sq, Bitboard blockers) {
+  Bitboard legalMoves = 0;
+
+  int rank = sq / 8;
+  int file = sq % 8;
+
+  // northeast
+  for (int r = rank + 1, f = file + 1; r < 8 && f < 8; r++, f++) {
+    legalMoves |= (1ULL << (r * 8 + f));
+    if (blockers & (1ULL << (r * 8 + f))) break;
+  }
+  // northwest
+  for (int r = rank + 1, f = file - 1; r < 8 && f >= 0; r++, f--) {
+    legalMoves |= (1ULL << (r * 8 + f));
+    if (blockers & (1ULL << (r * 8 + f))) break;
+  }
+  // southeast
+  for (int r = rank - 1, f = file + 1; r >= 0 && f < 8; r--, f++) {
+    legalMoves |= (1ULL << (r * 8 + f));
+    if (blockers & (1ULL << (r * 8 + f))) break;
+  }
+  // southwest
+  for (int r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--) {
+    legalMoves |= (1ULL << (r * 8 + f));
+    if (blockers & (1ULL << (r * 8 + f))) break;
+  }
+
+  return legalMoves;
 }

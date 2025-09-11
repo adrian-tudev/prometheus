@@ -90,4 +90,5 @@ void Position::print() const {
     }
     std::cout << "\n-----------------\n";
   }
+  std::cout << std::endl;
 }

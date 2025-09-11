@@ -15,5 +15,6 @@
 } while(0)
 
 std::string format(Square sq);
+bool is_sliding(PieceType piece);
 
 #endif
