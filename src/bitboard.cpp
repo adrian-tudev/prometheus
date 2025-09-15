@@ -5,9 +5,6 @@ using namespace std;
 const uint64_t hor_mask = 0xFFULL;
 const uint64_t ver_mask = 0x0101010101010101ULL;
 
-const int MAX_ROOK_SQUARES = 14;
-const int MAX_BISHOP_SQUARES = 13;
-
 // forward declaring
 void sliding_pieces();
 void nonsliding_pieces();
@@ -16,10 +13,10 @@ Bitboard legal_rook_squares(Square sq, Bitboard blockers);
 Bitboard legal_bishop_squares(Square sq, Bitboard blockers);
 
 // precomputed pseudo-legal bitboards for all pieces
-
 Bitboard movementMasks[pieceTypes][64];
 std::map<std::pair<Square, Bitboard>, Bitboard> rookAttack;
 std::map<std::pair<Square, Bitboard>, Bitboard> bishopAttack;
+
 namespace Bitboards {
   void init() {
     printf("Computing bitboards...\n");

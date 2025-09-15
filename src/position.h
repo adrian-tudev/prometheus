@@ -13,11 +13,12 @@
 
 struct State {
   bool white = 1;
-  bool castling_rights_white = 0;
-  bool castling_rights_black = 0;
-  int rule50 = 0; // "halfmoves" 
+  unsigned int castling_rights : 4 = 0;
+  // 50 "halfmoves" 
+  int rule50 = 0; 
   int fullMoves = 1;
-  uint64_t enPassant;
+  // bitboard with single 1 where en passant is possible
+  Bitboard enPassant; 
 };
 
 class Position {
@@ -25,8 +26,9 @@ class Position {
     Position() = default;
 
     void set(const std::string& FEN);
-    void do_move(Move move);
+    void do_move(Move move, bool updateState = true);
     void undo_move(Move move);
+    Color get_player() const;
 
     std::string fen() const;
     void print() const;
@@ -35,15 +37,16 @@ class Position {
     Bitboard all_pieces(Color color) const;
 
     inline int count_pieces(PieceType type) const;
-    inline Bitboard get_bitboard(PieceType type) const;
+    inline Bitboard get_bitboard_of(PieceType type) const;
 
   private:
+    State state;
     void set_bitboard(PieceType type);
     Bitboard piece_bitboard[pieceTypes];
     PieceType board[8][8];
 };
 
-inline Bitboard Position::get_bitboard(PieceType type) const {
+inline Bitboard Position::get_bitboard_of(PieceType type) const {
   assert(type != PieceType::EMPTY);
   return piece_bitboard[type];
 }

@@ -3,3 +3,5 @@
 bin/
 src/.ccls
 src/.ccls-cache/
+.ccls
+.ccls-cache/

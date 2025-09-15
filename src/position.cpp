@@ -3,7 +3,7 @@
 
 const std::string charToPiece = "pnbrqkPNBRQK";
 
-void Position::do_move(Move move) {
+void Position::do_move(Move move, bool updateState) {
   uint8_t idx = std::log2(move.target);
   uint8_t r = idx / 8;
   uint8_t c = idx % 8;
@@ -16,10 +16,64 @@ void Position::do_move(Move move) {
   board[r][c] = PieceType::EMPTY;
   r = dest_idx / 8;
   c = dest_idx % 8;
+
+  // remove the captured piece from its bitboard
+  PieceType dest_square = board[r][c];
+  if (dest_square != PieceType::EMPTY) {
+    Bitboards::clear_bit(piece_bitboard[dest_square], dest_idx);
+  }
   board[r][c] = pc;
+
+  if (updateState) {
+    // change player
+    state.white = !state.white;
+
+    // update 50-move rule counter
+    if (pc == W_PAWN || pc == B_PAWN || dest_square != PieceType::EMPTY) {
+      state.rule50 = 0;
+    } else {
+      state.rule50++;
+    }
+
+    // set each bit in castling rights if the rook or king has moved
+    if (pc == W_KING) {
+      state.castling_rights &= 0b0011;
+    } else if (pc == B_KING) {
+      state.castling_rights &= 0b1100;
+    } else if (pc == W_ROOK) {
+      if (idx == 0) state.castling_rights &= 0b1110;
+      else if (idx == 7) state.castling_rights &= 0b1101;
+    } else if (pc == B_ROOK) {
+      if (idx == 56) state.castling_rights &= 0b1011;
+      else if (idx == 63) state.castling_rights &= 0b0111;
+    }
+  }
 }
 
 void Position::undo_move(Move move) {
+}
+
+std::string Position::fen() const {
+  std::string fen = "";
+  for (int i = 7; i >= 0; i--) {
+    int empty = 0;
+    for (int j = 0; j < 8; j++) {
+      if (board[i][j] == PieceType::EMPTY) {
+        empty++;
+      } else {
+        if (empty > 0) {
+          fen += std::to_string(empty);
+          empty = 0;
+        }
+        fen += charToPiece[board[i][j]];
+      }
+    }
+    if (empty > 0) {
+      fen += std::to_string(empty);
+    }
+    if (i > 0) fen += '/';
+  }
+  return fen;
 }
 
 Bitboard Position::all_pieces(Color color) const {
@@ -91,4 +145,8 @@ void Position::print() const {
     std::cout << "\n-----------------\n";
   }
   std::cout << std::endl;
+}
+
+Color Position::get_player() const {
+  return state.white ? Color::WHITE : Color::BLACK;
 }

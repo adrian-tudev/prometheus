@@ -16,7 +16,6 @@ class Engine {
     Move search(uint8_t depth);
 
   private:
-    State gameState;
     Position position;
     MoveGen moveGenerator;
 

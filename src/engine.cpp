@@ -8,10 +8,11 @@ constexpr int32_t MAX_EVAL = 1e5;
 Engine::Engine() {
   Bitboards::init();
   position.set(STARTING_FEN);
+
+  position.set("1nbqkbnr/pp4pp/2p1pp2/1Q1pB3/3P4/8/PPP1PPPP/RN2KBNR");
   position.print();
 
   // // TESTS
-  // position.set("rnbqkbnr/pp4pp/2p1pp2/1Q1pB3/3P4/8/PPP1PPPP/RN2KBNR");
   // position.print();
   // {
   //   Square sq = 33; // e5
@@ -24,7 +25,7 @@ int32_t Engine::eval() {
   
   score += material_score();
 
-  return gameState.white ? score : -score;
+  return position.get_player() == Color::WHITE ? score : -score;
 }
 
 Move Engine::search(uint8_t depth) {
