@@ -18,7 +18,7 @@ struct State {
   int rule50 = 0; 
   int fullMoves = 1;
   // bitboard with single 1 where en passant is possible
-  Bitboard enPassant; 
+  Bitboard enPassant = 0; 
 };
 
 class Position {

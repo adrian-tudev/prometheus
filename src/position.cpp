@@ -73,6 +73,35 @@ std::string Position::fen() const {
     }
     if (i > 0) fen += '/';
   }
+  fen += " ";
+
+  // player to move
+  state.white ? fen += "w " : fen += "b ";
+
+  // castling rights
+  state.castling_rights & 0b0001 ? fen += 'K' : "";
+  state.castling_rights & 0b0010 ? fen += 'Q' : "";
+  state.castling_rights & 0b0100 ? fen += 'k' : "";
+  state.castling_rights & 0b1000 ? fen += 'q' : "";
+
+  // en passant square
+  if (state.enPassant) {
+    int ep_square = __builtin_ctzll(state.enPassant);
+    char file = 'a' + (ep_square % 8);
+    char rank = '1' + (ep_square / 8);
+    fen += " ";
+    fen += file;
+    fen += rank;
+  } else {
+    fen += " -";
+  }
+
+  // 50-move rule counter
+  fen += " " + std::to_string(state.rule50);
+
+  // fullmove number
+  fen += " " + std::to_string(state.fullMoves);
+
   return fen;
 }
 

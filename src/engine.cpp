@@ -14,6 +14,8 @@ Engine::Engine() {
   // position.set("rnb1kbnr/pp1p1ppp/4q3/2p5/4R3/4R3/PPP1RPPP/R1BQK1NR");
   position.print();
 
+  printf("%s\n", position.fen().c_str());
+
   // TESTS
   auto moveGenerator = MoveGen();
   moveGenerator.generate_moves(4, position);
