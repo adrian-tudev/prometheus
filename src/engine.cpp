@@ -9,15 +9,14 @@ Engine::Engine() {
   Bitboards::init();
   position.set(STARTING_FEN);
 
-  position.set("1nbqkbnr/pp4pp/2p1pp2/1Q1pB3/3P4/8/PPP1PPPP/RN2KBNR");
+  // position.set("1nbqkbnr/pp4pp/2p1pp2/1Q1pB3/3P4/8/PPP1PPPP/RN2KBNR");
+  // position.set("rnb1kbnr/pppppppp/4q3/8/8/8/PPP2PPP/R1BQK1NR");
+  // position.set("rnb1kbnr/pp1p1ppp/4q3/2p5/4R3/4R3/PPP1RPPP/R1BQK1NR");
   position.print();
 
-  // // TESTS
-  // position.print();
-  // {
-  //   Square sq = 33; // e5
-  //   auto moves = moveGenerator.generate_moves(W_QUEEN, sq, position);
-  // }
+  // TESTS
+  auto moveGenerator = MoveGen();
+  moveGenerator.generate_moves(4, position);
 }
 
 int32_t Engine::eval() {
@@ -29,6 +28,9 @@ int32_t Engine::eval() {
 }
 
 Move Engine::search(uint8_t depth) {
+  Move bestMove = {0, 0};
+
+  return bestMove;
 }
 
 int32_t Engine::material_score() {
@@ -43,5 +45,5 @@ int32_t Engine::material_score() {
 }
 
 Engine::~Engine() {
-  std::cout << "\033[1;31mshutting down prometheus.\033[0m" << std::endl;
+  printf("\033[1;31mshutting down prometheus.\033[0m\n");
 }

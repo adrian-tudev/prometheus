@@ -14,8 +14,7 @@ class MoveGen {
     MoveGen();
     ~MoveGen() = default;
 
-    std::vector<Move> generate_moves(PieceType piece, Square sq, const Position& pos) const;
-  private:
+    std::vector<Move> generate_moves(Square sq, const Position& pos) const;
 };
 
 #endif

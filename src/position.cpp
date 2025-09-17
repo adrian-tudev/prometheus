@@ -132,9 +132,9 @@ void Position::set_bitboard(PieceType type) {
 }
 
 void Position::print() const {
-  std::cout << "-----------------\n";
+  printf("-----------------\n");
   for (int i = 7; i >= 0; i--) {
-    std::cout << "|";
+    printf("|");
     for (int j = 0; j < 8; j++) {
       if (board[i][j] == PieceType::EMPTY) {
         std::cout << ' ' << '|';
