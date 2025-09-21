@@ -9,15 +9,15 @@
 
 class Engine {
   public:
-    Engine();
+    Engine(Position& position);
     ~Engine();
 
-    int32_t eval();
+    Score eval();
     Move search(uint8_t depth);
 
   private:
-    Position position;
     MoveGen moveGenerator;
+    Position& position;
 
     int32_t material_score();
 };

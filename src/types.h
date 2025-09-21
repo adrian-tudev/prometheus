@@ -6,6 +6,7 @@
 
 using Bitboard = uint64_t;
 using Square = uint8_t;
+using Score = int32_t;
 
 // OBS! EMPTY square not counted
 constexpr uint8_t pieceTypes = 12;

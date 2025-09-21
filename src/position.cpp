@@ -3,16 +3,16 @@
 
 void Position::do_move(Move move, bool updateState) {
   uint8_t from_idx = move.from;  // Already a square index (0-63)
-  uint8_t from_r = from_idx / 8;
-  uint8_t from_c = from_idx % 8;
+  Square from_r = from_idx / 8;
+  Square from_c = from_idx % 8;
   PieceType pc = board[from_r][from_c];
 
   // Clear piece from source square bitboard
   piece_bitboard[pc] = Bitboards::clear_bit(piece_bitboard[pc], from_idx);
 
-  uint8_t to_idx = move.to;  // Already a square index (0-63)
-  uint8_t to_r = to_idx / 8;
-  uint8_t to_c = to_idx % 8;
+  Square to_idx = move.to;  // Already a square index (0-63)
+  Square to_r = to_idx / 8;
+  Square to_c = to_idx % 8;
 
   // Remove captured piece from its bitboard (if any)
   PieceType captured_piece = board[to_r][to_c];

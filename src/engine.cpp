@@ -1,12 +1,12 @@
 #include "engine.h"
 
-Engine::Engine() {
+Engine::Engine(Position& position) : position(position) {
   position.set(STARTING_FEN);
 }
 
-int32_t Engine::eval() {
-  int32_t score = 0;
-  
+Score Engine::eval() {
+  Score score = 0;
+
   score += material_score();
 
   return position.get_player() == Color::WHITE ? score : -score;
@@ -18,8 +18,8 @@ Move Engine::search(uint8_t depth) {
   return bestMove;
 }
 
-int32_t Engine::material_score() {
-  int32_t score = 0;
+Score Engine::material_score() {
+  Score score = 0;
 
   score += 100 * (position.count_pieces(W_PAWN) - position.count_pieces(B_PAWN));
   score += 300 * (position.count_pieces(W_KNIGHT) - position.count_pieces(B_KNIGHT));

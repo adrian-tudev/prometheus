@@ -15,6 +15,9 @@ class UI {
 
     // for user input validation
     MoveGen movegen;
+
+    bool valid_player(Move move);
+    bool valid_move(Move move);
 };
 
 #endif
