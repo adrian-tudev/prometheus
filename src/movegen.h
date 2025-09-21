@@ -11,10 +11,14 @@
 
 class MoveGen {
   public:
-    MoveGen();
+    MoveGen() = default;
     ~MoveGen() = default;
 
-    std::vector<Move> generate_moves(Square sq, const Position& pos) const;
+    // all moves for current player
+    std::vector<Move> generate_moves(const Position& pos);
+
+    // all moves for a specific piece
+    std::vector<Move> generate_moves_at(Square sq, const Position& pos) const;
 };
 
 #endif

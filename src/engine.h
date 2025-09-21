@@ -1,11 +1,11 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include <cstdint>
-
 #include "movegen.h"
 #include "position.h"
 #include "utils.h"
+
+#define PROMETHEUS_VERSION "0.1"
 
 class Engine {
   public:

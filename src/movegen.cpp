@@ -2,10 +2,6 @@
 
 using namespace Bitboards;
 
-MoveGen::MoveGen() {
-
-}
-
 Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
   Bitboard allWhite = pos.all_pieces(WHITE);
   Bitboard allBlack = pos.all_pieces(BLACK);
@@ -94,14 +90,14 @@ Bitboard attackMask(const Position& pos) {
   return attackSquares;
 }
 
-std::vector<Move> MoveGen::generate_moves(Square sq, const Position& pos) const {
+std::vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) const {
   PieceType piece = pos.piece_on(sq);
   assert(piece != PieceType::EMPTY);
   // legal squares for the piece on sq
   Bitboard legalSquares = pseudo_legal_moves(piece, sq, pos);
 
   Bitboard enemyAttack = attackMask(pos);
-  print(enemyAttack);
+
   // checks   
   if (piece == W_KING || piece == B_KING) {
     Bitboard enemyAttack = attackMask(pos);
@@ -121,6 +117,22 @@ std::vector<Move> MoveGen::generate_moves(Square sq, const Position& pos) const 
 
   // Bitboard to Moves
   std::vector<Move> moves = bitboard_to_moves(legalSquares, sq);
+
+  return moves;
+}
+
+std::vector<Move> MoveGen::generate_moves(const Position& pos) {
+  std::vector<Move> moves;
+  Color player = pos.get_player();
+  Bitboard pieces = pos.all_pieces(player);
+
+  while (pieces) {
+    Square sq = __builtin_ctzll(pieces);
+    pieces &= pieces - 1; // clear lsb
+
+    std::vector<Move> pieceMoves = generate_moves_at(sq, pos);
+    moves.insert(moves.end(), pieceMoves.begin(), pieceMoves.end());
+  }
 
   return moves;
 }

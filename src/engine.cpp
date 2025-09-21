@@ -1,24 +1,7 @@
 #include "engine.h"
 
-const std::string STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
-
-// checkmate
-constexpr int32_t MAX_EVAL = 1e5;
-
 Engine::Engine() {
-  Bitboards::init();
   position.set(STARTING_FEN);
-
-  // position.set("1nbqkbnr/pp4pp/2p1pp2/1Q1pB3/3P4/8/PPP1PPPP/RN2KBNR");
-  // position.set("rnb1kbnr/pppppppp/4q3/8/8/8/PPP2PPP/R1BQK1NR");
-  // position.set("rnb1kbnr/pp1p1ppp/4q3/2p5/4R3/4R3/PPP1RPPP/R1BQK1NR");
-  position.print();
-
-  printf("%s\n", position.fen().c_str());
-
-  // TESTS
-  auto moveGenerator = MoveGen();
-  moveGenerator.generate_moves(4, position);
 }
 
 int32_t Engine::eval() {

@@ -1,56 +1,61 @@
 #include <cassert>
 #include "position.h"
 
-const std::string charToPiece = "pnbrqkPNBRQK";
-
 void Position::do_move(Move move, bool updateState) {
-  uint8_t idx = std::log2(move.target);
-  uint8_t r = idx / 8;
-  uint8_t c = idx % 8;
-  PieceType pc = board[r][c];
+  uint8_t from_idx = move.from;  // Already a square index (0-63)
+  uint8_t from_r = from_idx / 8;
+  uint8_t from_c = from_idx % 8;
+  PieceType pc = board[from_r][from_c];
 
-  Bitboards::clear_bit(piece_bitboard[pc], idx);
+  // Clear piece from source square bitboard
+  piece_bitboard[pc] = Bitboards::clear_bit(piece_bitboard[pc], from_idx);
 
-  uint8_t dest_idx = std::log2(move.dest);
-  Bitboards::set_bit(piece_bitboard[pc], dest_idx);
-  board[r][c] = PieceType::EMPTY;
-  r = dest_idx / 8;
-  c = dest_idx % 8;
+  uint8_t to_idx = move.to;  // Already a square index (0-63)
+  uint8_t to_r = to_idx / 8;
+  uint8_t to_c = to_idx % 8;
 
-  // remove the captured piece from its bitboard
-  PieceType dest_square = board[r][c];
-  if (dest_square != PieceType::EMPTY) {
-    Bitboards::clear_bit(piece_bitboard[dest_square], dest_idx);
+  // Remove captured piece from its bitboard (if any)
+  PieceType captured_piece = board[to_r][to_c];
+  if (captured_piece != PieceType::EMPTY) {
+    piece_bitboard[captured_piece] = Bitboards::clear_bit(piece_bitboard[captured_piece], to_idx);
   }
-  board[r][c] = pc;
+
+  // Set piece at destination square bitboard
+  piece_bitboard[pc] = Bitboards::set_bit(piece_bitboard[pc], to_idx);
+
+  // Update board array
+  board[from_r][from_c] = PieceType::EMPTY;
+  board[to_r][to_c] = pc;
 
   if (updateState) {
     // change player
     state.white = !state.white;
 
     // update 50-move rule counter
-    if (pc == W_PAWN || pc == B_PAWN || dest_square != PieceType::EMPTY) {
+    if (pc == W_PAWN || pc == B_PAWN || captured_piece != PieceType::EMPTY) {
       state.rule50 = 0;
     } else {
       state.rule50++;
     }
 
-    // set each bit in castling rights if the rook or king has moved
+    // update castling rights if king or rook moves
     if (pc == W_KING) {
-      state.castling_rights &= 0b0011;
+      state.castling_rights &= 0b0011;  // Clear white castling rights
     } else if (pc == B_KING) {
-      state.castling_rights &= 0b1100;
+      state.castling_rights &= 0b1100;  // Clear black castling rights
     } else if (pc == W_ROOK) {
-      if (idx == 0) state.castling_rights &= 0b1110;
-      else if (idx == 7) state.castling_rights &= 0b1101;
+      if (from_idx == 0) state.castling_rights &= 0b1110;  // a1 rook moved
+      else if (from_idx == 7) state.castling_rights &= 0b1101;  // h1 rook moved
     } else if (pc == B_ROOK) {
-      if (idx == 56) state.castling_rights &= 0b1011;
-      else if (idx == 63) state.castling_rights &= 0b0111;
+      if (from_idx == 56) state.castling_rights &= 0b1011;  // a8 rook moved
+      else if (from_idx == 63) state.castling_rights &= 0b0111;  // h8 rook moved
     }
   }
 }
 
 void Position::undo_move(Move move) {
+  printf("undo move not implemented yet!\n");
+  assert(false);
 }
 
 std::string Position::fen() const {
@@ -165,11 +170,14 @@ void Position::print() const {
   for (int i = 7; i >= 0; i--) {
     printf("|");
     for (int j = 0; j < 8; j++) {
-      if (board[i][j] == PieceType::EMPTY) {
+      PieceType piece = board[i][j];
+      if (piece == PieceType::EMPTY) {
         std::cout << ' ' << '|';
-        continue;
+      } else if (piece >= 0 && piece < charToPiece.size()) {
+        std::cout << charToPiece[piece] << '|';
+      } else {
+        std::cout << '?' << '|';  // Invalid piece type
       }
-      std::cout << charToPiece[board[i][j]] << '|';
     }
     std::cout << "\n-----------------\n";
   }

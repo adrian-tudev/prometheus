@@ -26,14 +26,23 @@ enum PieceType {
   EMPTY
 };
 
-struct Move {
-  uint8_t target;
-  uint8_t dest;
-};
-
 inline bool piece_is_white(PieceType type) {
   assert(type != EMPTY);
   return type >= W_PAWN && type <= W_KING;
+}
+
+struct Move {
+  Square from;
+  Square to;
+  PieceType promotion = EMPTY;
+};
+
+inline bool operator==(const Move& a, const Move& b) {
+  return a.from == b.from && a.to == b.to && a.promotion == b.promotion;
+}
+
+inline bool operator!=(const Move& a, const Move& b) {
+  return !(a == b);
 }
 
 #endif
