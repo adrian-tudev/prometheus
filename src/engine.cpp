@@ -1,7 +1,7 @@
 #include "engine.h"
 
 Engine::Engine(Position& position) : position(position) {
-  position.set(STARTING_FEN);
+
 }
 
 Score Engine::eval() {

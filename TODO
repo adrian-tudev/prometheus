@@ -1,18 +1,20 @@
-TODO
-=======
+# TODO
 
-// current
+## current
 -------------
 - castling
 
-// features
+## features
 -------------
-- be able to make/undo moves
 - update the State struct correctly
-- should be able to print FEN from Position
+- pins
 - en passant
+- move flags for Move struct
 
-// bugs
+## bugs
+- terrific pawn movement :(
 
-// archive
-
+## archive
+- "ui"
+- should be able to print FEN from Position
+- be able to make/undo moves

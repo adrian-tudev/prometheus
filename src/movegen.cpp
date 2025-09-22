@@ -23,6 +23,28 @@ Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
     }
   }
 
+  if (piece == W_PAWN) {
+    // white pawns can't move to 8th rank
+    legalSquares &= 0x00FFFFFFFFFFFF;
+    // can't move forward if square is occupied
+    Bitboard occupied = allWhite | allBlack;
+    legalSquares &= ~occupied;
+    // can't do double pawn push if square in front is occupied
+    if (sq / 8 == 1 && (occupied & (1ULL << (sq + 8)))) {
+      legalSquares &= ~(1ULL << (sq + 16));
+    }
+  } else if (piece == B_PAWN) {
+    // black pawns can't move to 1st rank
+    legalSquares &= 0xFFFFFFFFFFFF00;
+    // can't move forward if square is occupied
+    Bitboard occupied = allWhite | allBlack;
+    legalSquares &= ~occupied;
+    // can't do double pawn push if square in front is occupied
+    if (sq / 8 == 6 && (occupied & (1ULL << (sq - 8)))) {
+      legalSquares &= ~(1ULL << (sq - 16));
+    }
+  }
+
   // can't eat own pieces
   Bitboard occupied = piece_is_white(piece) ? allWhite : allBlack;
   legalSquares &= ~occupied;
@@ -50,8 +72,24 @@ std::vector<Move> bitboard_to_moves(Bitboard board, Square from) {
   return moves;
 }
 
+Bitboard pawn_attacks(Color color, Square sq) {
+  Bitboard attacks = 0;
+  if (color == WHITE) {
+    if (sq % 8 != 0 && sq + 7 < 64) // not a-file
+      attacks |= (1ULL << (sq + 7));
+    if (sq % 8 != 7 && sq + 9 < 64) // not h-file
+      attacks |= (1ULL << (sq + 9));
+  } else {
+    if (sq % 8 != 0 && sq >= 9) // not a-file
+      attacks |= (1ULL << (sq - 9));
+    if (sq % 8 != 7 && sq >= 7) // not h-file
+      attacks |= (1ULL << (sq - 7));
+  }
+  return attacks;
+}
+
 // returns bitboard of all squares attacked by 'attacker' 
-Bitboard attackMask(const Position& pos) {
+Bitboard attack_mask(const Position& pos) {
   Color attacker = pos.get_player() == WHITE ? BLACK : WHITE;
 
   Bitboard attackSquares = 0;
@@ -67,18 +105,8 @@ Bitboard attackMask(const Position& pos) {
       pieces &= pieces - 1; // clear lsb
 
       Bitboard legalSquares = 0;
-      if (type == W_PAWN) {
-        // White pawn attacks: one square diagonally forward
-        if (sq % 8 != 0 && sq + 7 < 64) // not a-file
-          legalSquares |= (1ULL << (sq + 7));
-        if (sq % 8 != 7 && sq + 9 < 64) // not h-file
-          legalSquares |= (1ULL << (sq + 9));
-      } else if (type == B_PAWN) {
-        // Black pawn attacks: one square diagonally backward
-        if (sq % 8 != 0 && sq >= 9) // not a-file
-          legalSquares |= (1ULL << (sq - 9));
-        if (sq % 8 != 7 && sq >= 7) // not h-file
-          legalSquares |= (1ULL << (sq - 7));
+      if (type == W_PAWN || type == B_PAWN) {
+        legalSquares = pawn_attacks(attacker, sq);
       } else {
         legalSquares = pseudo_legal_moves((PieceType) type, sq, pos);
       }
@@ -96,11 +124,18 @@ std::vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) con
   // legal squares for the piece on sq
   Bitboard legalSquares = pseudo_legal_moves(piece, sq, pos);
 
-  Bitboard enemyAttack = attackMask(pos);
+
+  // attacks for pawns (different from movement)
+  if (piece == W_PAWN || piece == B_PAWN) {
+    Bitboard capturable = pos.all_pieces(piece_is_white(piece) ? BLACK : WHITE);
+    // TODO make a separate bitboard for captures to enable capture flag
+    legalSquares |= capturable & pawn_attacks(get_color(piece), sq);
+  }
 
   // checks   
+  Bitboard enemyAttack = attack_mask(pos);
   if (piece == W_KING || piece == B_KING) {
-    Bitboard enemyAttack = attackMask(pos);
+    Bitboard enemyAttack = attack_mask(pos);
     if (pos.get_bitboard_of(piece) & enemyAttack) {
       // king is in check, can only move to squares not attacked by enemy
       printf("check!\n");

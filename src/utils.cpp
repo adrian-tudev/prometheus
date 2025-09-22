@@ -30,3 +30,7 @@ Move parse_move(const std::string& str) {
 bool is_sliding(PieceType piece) {
   return piece == W_BISHOP || piece == B_BISHOP || piece == W_ROOK || piece == B_ROOK || piece == W_QUEEN || piece == B_QUEEN;
 }
+
+Color get_color(PieceType piece) {
+  return piece >= W_PAWN ? WHITE : BLACK;
+}

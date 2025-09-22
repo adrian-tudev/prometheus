@@ -4,20 +4,24 @@
 #include "engine.h"
 
 class UI {
-  public:
-    UI();
-    ~UI() = default;
+public:
+  UI();
+  ~UI() = default;
 
-    void loop();
-  private:
-    Engine engine;
-    Position position;
+  void loop();
 
-    // for user input validation
-    MoveGen movegen;
+private:
+  Engine engine;
 
-    bool valid_player(Move move);
-    bool valid_move(Move move);
+  // stores history of positions
+  std::vector<Position> positions;
+  Position position;
+
+  // for user input validation
+  MoveGen movegen;
+
+  bool is_own_piece(Move move);
+  bool is_move_legal(Move move);
 };
 
 #endif

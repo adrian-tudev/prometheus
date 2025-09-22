@@ -8,18 +8,19 @@
 #define PROMETHEUS_VERSION "0.1"
 
 class Engine {
-  public:
-    Engine(Position& position);
-    ~Engine();
+public:
+  Engine(Position& position);
+  ~Engine();
 
-    Score eval();
-    Move search(uint8_t depth);
+  Score eval();
+  Move search(uint8_t depth);
+  void set_position(const Position& pos) { position = pos; }
 
-  private:
-    MoveGen moveGenerator;
-    Position& position;
+private:
+  MoveGen moveGenerator;
+  Position& position;
 
-    int32_t material_score();
+  Score material_score();
 };
 
 #endif

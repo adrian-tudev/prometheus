@@ -3,8 +3,11 @@
 UI::UI() : engine(position) {
   printf("\033[32mprometheus v.%s\033[0m\n", PROMETHEUS_VERSION);
   Bitboards::init();
-  position.set(STARTING_FEN);
-  position.print();
+
+  Position initPos;
+  initPos.set(STARTING_FEN);
+  initPos.print();
+  positions.push_back(initPos);
 }
 
 std::string read_input() {
@@ -13,11 +16,10 @@ std::string read_input() {
   return line;
 }
 
-bool UI::valid_player(Move move) {
-  // check if move is valid
-  Color player = position.get_player();
-  PieceType piece = position.piece_on(move.from);
-  // std::cout << "move: " << format(move.from) << " -> " << format(move.to) << "\n";
+// check if selected piece is valid
+bool UI::is_own_piece(Move move) {
+  Color player = positions.back().get_player();
+  PieceType piece = positions.back().piece_on(move.from);
   if (piece == EMPTY) {
     printf("no piece at %s\n", format(move.from).c_str());
     return false;
@@ -29,8 +31,8 @@ bool UI::valid_player(Move move) {
   return true;
 }
 
-bool UI::valid_move(Move move) {
-  std::vector<Move> legalMoves = movegen.generate_moves_at(move.from, position);
+bool UI::is_move_legal(Move move) {
+  std::vector<Move> legalMoves = movegen.generate_moves_at(move.from, positions.back());
   auto it = std::find(legalMoves.begin(), legalMoves.end(), move);
   if (it == legalMoves.end()) {
     printf("illegal move!\n");
@@ -44,14 +46,25 @@ void UI::loop() {
     std::cout << "> ";
     std::string line = read_input();
     if (line == "quit" || line == "q") break;
+    if (line == "undo" || line == "u") {
+      if (positions.size() > 1) {
+        positions.pop_back();
+        positions.back().print();
+      } else {
+        printf("no moves to undo!\n");
+      }
+      continue;
+    }
     Move move = parse_move(line);
     // has chosen valid piece
-    if (!valid_player(move)) continue;
+    if (!is_own_piece(move)) continue;
     // is valid move for that piece
-    if (!valid_move(move)) continue;
+    if (!is_move_legal(move)) continue;
 
-    position.do_move(move);
-    position.print();
+    Position pos = positions.back();
+    pos.do_move(move);
+    pos.print();
+    positions.push_back(pos);
 
     Score score = engine.eval();
   }

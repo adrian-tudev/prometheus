@@ -10,6 +10,7 @@ namespace Bitboards {
   // forward declaring
   void sliding_pieces();
   void nonsliding_pieces();
+  void blockers();
   std::vector<Bitboard> gen_blockers(Bitboard movementMask);
   Bitboard legal_rook_squares(Square sq, Bitboard blockers);
   Bitboard legal_bishop_squares(Square sq, Bitboard blockers);
@@ -17,24 +18,11 @@ namespace Bitboards {
   void init() {
     printf("Computing bitboards...\n");
     auto start = std::chrono::high_resolution_clock::now();
+
     sliding_pieces();
     nonsliding_pieces();
+    blockers();
 
-    // precompute blockers
-    for (Square sq = 0; sq < 64; sq++) {
-
-      std::vector<Bitboard> rook_blockers = gen_blockers(movementMasks[W_ROOK][sq]);
-      for (Bitboard pattern : rook_blockers) {
-        Bitboard legalMoves = legal_rook_squares(sq, pattern);
-        rookAttack[{sq, pattern}] = legalMoves;
-      }
-
-      std::vector<Bitboard> bishop_blockers = gen_blockers(movementMasks[W_BISHOP][sq]);
-      for (Bitboard pattern : bishop_blockers) {
-        Bitboard legalMoves = legal_bishop_squares(sq, pattern);
-        bishopAttack[{sq, pattern}] = legalMoves;
-      }
-    }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     printf("Bitboards computed in %ld ms.\n", duration.count());
@@ -65,6 +53,7 @@ namespace Bitboards {
   Bitboard clear_bit(Bitboard board, int square) {
     return board & ~(1ULL << square);
   }
+
   void sliding_pieces() {
     Bitboard bishopMovement[64];
     Bitboard rookMovement[64];
@@ -250,5 +239,24 @@ namespace Bitboards {
     }
 
     return legalMoves;
+  }
+
+  // precompute blockers
+  void blockers() {
+    for (Square sq = 0; sq < 64; sq++) {
+
+      std::vector<Bitboard> rook_blockers = gen_blockers(movementMasks[W_ROOK][sq]);
+      for (Bitboard pattern : rook_blockers) {
+        Bitboard legalMoves = legal_rook_squares(sq, pattern);
+        rookAttack[{sq, pattern}] = legalMoves;
+      }
+
+      std::vector<Bitboard> bishop_blockers = gen_blockers(movementMasks[W_BISHOP][sq]);
+      for (Bitboard pattern : bishop_blockers) {
+        Bitboard legalMoves = legal_bishop_squares(sq, pattern);
+        bishopAttack[{sq, pattern}] = legalMoves;
+      }
+    }
+
   }
 } // namespace Bitboards

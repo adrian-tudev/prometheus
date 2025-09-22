@@ -22,31 +22,31 @@ struct State {
 };
 
 class Position {
-  public:
-    Position() = default;
+public:
+  Position() = default;
 
-    void set(const std::string& FEN);
-    void do_move(Move move, bool updateState = true);
-    void undo_move(Move move);
-    Color get_player() const;
+  void set(const std::string& FEN);
+  void do_move(Move move, bool updateState = true);
+  void undo_move(Move move);
+  Color get_player() const;
 
-    std::string fen() const;
-    void print() const;
+  std::string fen() const;
+  void print() const;
 
-    // return position of all pieces of given color
-    Bitboard all_pieces(Color color) const;
+  // return position of all pieces of given color
+  Bitboard all_pieces(Color color) const;
 
-    inline void set_check();
-    inline bool is_check() const { return state.in_check; }
-    inline PieceType piece_on(Square sq) const;
-    inline int count_pieces(PieceType type) const;
-    inline Bitboard get_bitboard_of(PieceType type) const;
+  inline void set_check();
+  inline bool is_check() const { return state.in_check; }
+  inline PieceType piece_on(Square sq) const;
+  inline int count_pieces(PieceType type) const;
+  inline Bitboard get_bitboard_of(PieceType type) const;
 
-  private:
-    State state;
-    Bitboard piece_bitboard[pieceTypes];
-    PieceType board[8][8];
-    void set_bitboard(PieceType type);
+private:
+  State state;
+  Bitboard piece_bitboard[pieceTypes];
+  PieceType board[8][8];
+  void set_bitboard(PieceType type);
 };
 
 inline PieceType Position::piece_on(Square sq) const {

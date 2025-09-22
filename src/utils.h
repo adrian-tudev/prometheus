@@ -23,5 +23,6 @@ Move parse_move(const std::string& str);
 
 std::string format(Square sq);
 bool is_sliding(PieceType piece);
+Color get_color(PieceType piece);
 
 #endif

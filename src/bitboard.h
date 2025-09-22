@@ -17,8 +17,8 @@ using std::map;
 namespace Bitboards {
   // global precomputed bitboards
   extern Bitboard movementMasks[pieceTypes][64];
-  extern map<pair<Square, Bitboard>, Bitboard> rookAttack;
   extern map<pair<Square, Bitboard>, Bitboard> bishopAttack;
+  extern map<pair<Square, Bitboard>, Bitboard> rookAttack;
 
   // rook movement masks
   constexpr Bitboard rankMask = 0xFFULL;

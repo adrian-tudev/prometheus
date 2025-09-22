@@ -32,9 +32,19 @@ inline bool piece_is_white(PieceType type) {
   return type >= W_PAWN && type <= W_KING;
 }
 
+enum MoveFlags {
+  CAPTURE = 1 << 0,
+  DOUBLE_PAWN_PUSH = 1 << 1,
+  KING_CASTLE = 1 << 2,
+  QUEEN_CASTLE = 1 << 3,
+  EN_PASSANT = 1 << 4,
+  PROMOTION = 1 << 5
+};
+
 struct Move {
   Square from;
   Square to;
+  MoveFlags flags = static_cast<MoveFlags>(0);
   PieceType promotion = EMPTY;
 };
 
