@@ -6,7 +6,6 @@ UI::UI() : engine(position) {
 
   Position initPos;
   initPos.set(STARTING_FEN);
-  initPos.print();
   positions.push_back(initPos);
 }
 
@@ -42,7 +41,9 @@ bool UI::is_move_legal(Move move) {
 }
 
 void UI::loop() {
+  positions.back().print();
   while (true) {
+    engine.set_position(positions.back());
     std::cout << "> ";
     std::string line = read_input();
     if (line == "quit" || line == "q") break;
@@ -55,6 +56,22 @@ void UI::loop() {
       }
       continue;
     }
+    if (line == "eval" || line == "e") {
+      Score score = engine.eval();
+      printf("eval: %d\n", score);
+      continue;
+    }
+    // set position from FEN
+    if (line == "fen" || line == "f") {
+      std::cout << "enter FEN: ";
+      std::string fen = read_input();
+      Position pos;
+      pos.set(fen);
+      pos.print();
+      positions.push_back(pos);
+      continue;
+    }
+
     Move move = parse_move(line);
     // has chosen valid piece
     if (!is_own_piece(move)) continue;

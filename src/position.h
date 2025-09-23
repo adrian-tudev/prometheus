@@ -27,14 +27,12 @@ public:
 
   void set(const std::string& FEN);
   void do_move(Move move, bool updateState = true);
-  void undo_move(Move move);
-  Color get_player() const;
-
-  std::string fen() const;
-  void print() const;
 
   // return position of all pieces of given color
   Bitboard all_pieces(Color color) const;
+  Color get_player() const;
+  std::string fen() const;
+  void print() const;
 
   inline void set_check();
   inline bool is_check() const { return state.in_check; }

@@ -40,22 +40,17 @@ void Position::do_move(Move move, bool updateState) {
 
     // update castling rights if king or rook moves
     if (pc == W_KING) {
-      state.castling_rights &= 0b0011;  // Clear white castling rights
+      state.castling_rights &= CastlingRights::WK | CastlingRights::WQ;  // Clear white castling rights
     } else if (pc == B_KING) {
-      state.castling_rights &= 0b1100;  // Clear black castling rights
+      state.castling_rights &= CastlingRights::BK | CastlingRights::BQ;  // Clear black castling rights
     } else if (pc == W_ROOK) {
-      if (from_idx == 0) state.castling_rights &= 0b1110;  // a1 rook moved
-      else if (from_idx == 7) state.castling_rights &= 0b1101;  // h1 rook moved
+      if (from_idx == 0) state.castling_rights &= ~CastlingRights::WK;  // a1 rook moved
+      else if (from_idx == 7) state.castling_rights &= ~CastlingRights::WQ;  // h1 rook moved
     } else if (pc == B_ROOK) {
-      if (from_idx == 56) state.castling_rights &= 0b1011;  // a8 rook moved
-      else if (from_idx == 63) state.castling_rights &= 0b0111;  // h8 rook moved
+      if (from_idx == 56) state.castling_rights &= ~CastlingRights::BK;  // a8 rook moved
+      else if (from_idx == 63) state.castling_rights &= ~CastlingRights::BQ;  // h8 rook moved
     }
   }
-}
-
-void Position::undo_move(Move move) {
-  printf("undo move not implemented yet!\n");
-  assert(false);
 }
 
 std::string Position::fen() const {
