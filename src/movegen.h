@@ -18,7 +18,14 @@ public:
   std::vector<Move> generate_moves(const Position& pos);
 
   // all moves for a specific piece
-  std::vector<Move> generate_moves_at(Square sq, const Position& pos) const;
+  std::vector<Move> generate_moves_at(Square sq, const Position& pos);
+
+private:
+  Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos);
+  Bitboard castling(const Position& pos);
+  std::vector<Move> bitboard_to_moves(Bitboard board, Square from);
+  Bitboard pawn_attacks(Color color, Square sq);
+  Bitboard attack_mask(const Position& pos);
 };
 
 #endif

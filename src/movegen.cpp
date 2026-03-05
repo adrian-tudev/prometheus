@@ -2,7 +2,64 @@
 
 using namespace Bitboards;
 
-Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
+std::vector<Move> MoveGen::generate_moves(const Position& pos) {
+  std::vector<Move> moves;
+  Color player = pos.get_player();
+  Bitboard pieces = pos.all_pieces(player);
+
+  while (pieces) {
+    Square sq = __builtin_ctzll(pieces);
+    pieces &= pieces - 1; // clear lsb
+
+    std::vector<Move> pieceMoves = generate_moves_at(sq, pos);
+    moves.insert(moves.end(), pieceMoves.begin(), pieceMoves.end());
+  }
+
+  return moves;
+}
+
+std::vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
+  PieceType piece = pos.piece_on(sq);
+  assert(piece != PieceType::EMPTY);
+  // legal squares for the piece on sq
+  Bitboard legalSquares = pseudo_legal_moves(piece, sq, pos);
+
+  // attacks for pawns (different from movement)
+  if (piece == W_PAWN || piece == B_PAWN) {
+    Bitboard capturable = pos.all_pieces(piece_is_white(piece) ? BLACK : WHITE);
+    // TODO make a separate bitboard for captures to enable capture flag
+    legalSquares |= capturable & pawn_attacks(get_color(piece), sq);
+  }
+
+  // checks   
+  Bitboard enemyAttack = attack_mask(pos);
+  if (piece == W_KING || piece == B_KING) {
+    Bitboard enemyAttack = attack_mask(pos);
+    if (pos.get_bitboard_of(piece) & enemyAttack) {
+      // king is in check, can only move to squares not attacked by enemy
+      legalSquares &= ~enemyAttack;
+    }
+  }
+
+  // castling
+  if (piece == W_KING || piece == B_KING) {
+    legalSquares |= castling(pos);
+  }
+
+  // can't eat own pieces
+  // important: do this after checking for checks to disable the king from capturing a "defended" piece
+  Bitboard occupied = piece_is_white(piece) ? pos.all_pieces(WHITE) : pos.all_pieces(BLACK);
+  legalSquares &= ~occupied;
+
+  // pins
+
+  // Bitboard to Moves
+  std::vector<Move> moves = bitboard_to_moves(legalSquares, sq);
+
+  return moves;
+}
+
+Bitboard MoveGen::pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
   Bitboard allWhite = pos.all_pieces(WHITE);
   Bitboard allBlack = pos.all_pieces(BLACK);
   Bitboard allPieces = allWhite | allBlack;
@@ -50,14 +107,14 @@ Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
 
 // returns bitboard of legal squares the king can move to when castling
 // 0 if not available
-Bitboard castling(const Position& pos) {
+Bitboard MoveGen::castling(const Position& pos) {
   Bitboard legalSquares = 0;
   // TODO
 
   return legalSquares;
 }
 
-std::vector<Move> bitboard_to_moves(Bitboard board, Square from) {
+std::vector<Move> MoveGen::bitboard_to_moves(Bitboard board, Square from) {
   std::vector<Move> moves;
   for (Square to = 0; to < 64; to++) {
     if (board & (1ULL << to)) {
@@ -68,7 +125,7 @@ std::vector<Move> bitboard_to_moves(Bitboard board, Square from) {
   return moves;
 }
 
-Bitboard pawn_attacks(Color color, Square sq) {
+Bitboard MoveGen::pawn_attacks(Color color, Square sq) {
   Bitboard attacks = 0;
   if (color == WHITE) {
     if (sq % 8 != 0 && sq + 7 < 64) // not a-file
@@ -85,7 +142,7 @@ Bitboard pawn_attacks(Color color, Square sq) {
 }
 
 // returns bitboard of all squares attacked by 'attacker' 
-Bitboard attack_mask(const Position& pos) {
+Bitboard MoveGen::attack_mask(const Position& pos) {
   Color attacker = pos.get_player() == WHITE ? BLACK : WHITE;
 
   Bitboard attackSquares = 0;
@@ -114,59 +171,3 @@ Bitboard attack_mask(const Position& pos) {
   return attackSquares;
 }
 
-std::vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) const {
-  PieceType piece = pos.piece_on(sq);
-  assert(piece != PieceType::EMPTY);
-  // legal squares for the piece on sq
-  Bitboard legalSquares = pseudo_legal_moves(piece, sq, pos);
-
-  // attacks for pawns (different from movement)
-  if (piece == W_PAWN || piece == B_PAWN) {
-    Bitboard capturable = pos.all_pieces(piece_is_white(piece) ? BLACK : WHITE);
-    // TODO make a separate bitboard for captures to enable capture flag
-    legalSquares |= capturable & pawn_attacks(get_color(piece), sq);
-  }
-
-  // checks   
-  Bitboard enemyAttack = attack_mask(pos);
-  if (piece == W_KING || piece == B_KING) {
-    Bitboard enemyAttack = attack_mask(pos);
-    if (pos.get_bitboard_of(piece) & enemyAttack) {
-      // king is in check, can only move to squares not attacked by enemy
-      legalSquares &= ~enemyAttack;
-    }
-  }
-
-  // castling
-  if (piece == W_KING || piece == B_KING) {
-    legalSquares |= castling(pos);
-  }
-
-  // can't eat own pieces
-  // important: do this after checking for checks to disable the king from capturing a "defended" piece
-  Bitboard occupied = piece_is_white(piece) ? pos.all_pieces(WHITE) : pos.all_pieces(BLACK);
-  legalSquares &= ~occupied;
-
-  // pins
-
-  // Bitboard to Moves
-  std::vector<Move> moves = bitboard_to_moves(legalSquares, sq);
-
-  return moves;
-}
-
-std::vector<Move> MoveGen::generate_moves(const Position& pos) {
-  std::vector<Move> moves;
-  Color player = pos.get_player();
-  Bitboard pieces = pos.all_pieces(player);
-
-  while (pieces) {
-    Square sq = __builtin_ctzll(pieces);
-    pieces &= pieces - 1; // clear lsb
-
-    std::vector<Move> pieceMoves = generate_moves_at(sq, pos);
-    moves.insert(moves.end(), pieceMoves.begin(), pieceMoves.end());
-  }
-
-  return moves;
-}
