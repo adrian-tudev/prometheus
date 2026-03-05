@@ -161,20 +161,20 @@ void Position::set_bitboard(PieceType type) {
 }
 
 void Position::print() const {
-  printf("-----------------\n");
+  printf("---------------------------------\n");
   for (int i = 7; i >= 0; i--) {
     printf("|");
     for (int j = 0; j < 8; j++) {
       PieceType piece = board[i][j];
       if (piece == PieceType::EMPTY) {
-        std::cout << ' ' << '|';
+        std::cout << "   |";
       } else if (piece >= 0 && piece < charToPiece.size()) {
-        std::cout << charToPiece[piece] << '|';
+        std::cout << " " << charToPiece[piece] << " |";
       } else {
-        std::cout << '?' << '|';  // Invalid piece type
+        std::cout << " ? |";  // Invalid piece type
       }
     }
-    std::cout << "\n-----------------\n";
+    std::cout << "\n---------------------------------\n";
   }
   std::cout << std::endl;
 }
