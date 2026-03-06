@@ -31,14 +31,10 @@ std::vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
     legalSquares |= capturable & pawn_attacks(get_color(piece), sq);
   }
 
-  // checks   
-  Bitboard enemyAttack = attack_mask(pos);
+  // king movement (don't let him commit suicide)
   if (piece == W_KING || piece == B_KING) {
     Bitboard enemyAttack = attack_mask(pos);
-    if (pos.get_bitboard_of(piece) & enemyAttack) {
-      // king is in check, can only move to squares not attacked by enemy
-      legalSquares &= ~enemyAttack;
-    }
+    legalSquares &= ~enemyAttack;
   }
 
   // castling
