@@ -15,7 +15,6 @@ private:
 
   // stores history of positions
   std::vector<Position> positions;
-  Position position;
 
   // for user input validation
   MoveGen movegen;

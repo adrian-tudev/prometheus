@@ -9,7 +9,7 @@
 
 class Engine {
 public:
-  Engine(Position& position);
+  Engine();
   ~Engine();
 
   Score eval();
@@ -18,7 +18,7 @@ public:
 
 private:
   MoveGen moveGenerator;
-  Position& position;
+  Position position;
 
   Score material_score();
 };

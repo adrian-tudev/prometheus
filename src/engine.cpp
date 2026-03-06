@@ -1,6 +1,6 @@
 #include "engine.h"
 
-Engine::Engine(Position& position) : position(position) {
+Engine::Engine() {
 
 }
 
