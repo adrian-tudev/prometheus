@@ -1,6 +1,9 @@
 #include <cassert>
 #include "position.h"
 
+using namespace Bitboards;
+
+// TODO: update Move flags accordingly
 void Position::do_move(Move move, bool updateState) {
   uint8_t from_idx = move.from;  // Already a square index (0-63)
   Square from_r = from_idx / 8;
@@ -8,7 +11,7 @@ void Position::do_move(Move move, bool updateState) {
   PieceType pc = board[from_r][from_c];
 
   // Clear piece from source square bitboard
-  piece_bitboard[pc] = Bitboards::clear_bit(piece_bitboard[pc], from_idx);
+  piece_bitboard[pc] = clear_bit(piece_bitboard[pc], from_idx);
 
   Square to_idx = move.to;  // Already a square index (0-63)
   Square to_r = to_idx / 8;
@@ -17,11 +20,12 @@ void Position::do_move(Move move, bool updateState) {
   // Remove captured piece from its bitboard (if any)
   PieceType captured_piece = board[to_r][to_c];
   if (captured_piece != PieceType::EMPTY) {
-    piece_bitboard[captured_piece] = Bitboards::clear_bit(piece_bitboard[captured_piece], to_idx);
+    piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], to_idx);
+    move.captured_piece = captured_piece;
   }
 
   // Set piece at destination square bitboard
-  piece_bitboard[pc] = Bitboards::set_bit(piece_bitboard[pc], to_idx);
+  piece_bitboard[pc] = set_bit(piece_bitboard[pc], to_idx);
 
   // Update board array
   board[from_r][from_c] = PieceType::EMPTY;
@@ -51,6 +55,9 @@ void Position::do_move(Move move, bool updateState) {
       else if (from_idx == 63) state.castling_rights &= ~CastlingRights::BQ;  // h8 rook moved
     }
   }
+}
+
+void Position::undo_move(const Move move) {
 }
 
 std::string Position::fen() const {

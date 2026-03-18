@@ -27,6 +27,7 @@ public:
 
   void set(const std::string& FEN);
   void do_move(Move move, bool updateState = true);
+  void undo_move(const Move move);
 
   // return position of all pieces of given color
   Bitboard all_pieces(Color color) const;
