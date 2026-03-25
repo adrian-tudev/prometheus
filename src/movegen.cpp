@@ -34,6 +34,9 @@ std::vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
   // king movement (don't let him commit suicide)
   if (piece == W_KING || piece == B_KING) {
     Bitboard enemyAttack = attack_mask(pos);
+    // TODO: in check
+    if (pos.get_bitboard_of(piece) & enemyAttack) {
+    }
     legalSquares &= ~enemyAttack;
   }
 
@@ -64,15 +67,15 @@ Bitboard MoveGen::pseudo_legal_moves(PieceType piece, Square sq, const Position&
   if (is_sliding(piece)) {
     Bitboard blockers = allPieces & movementMasks[piece][sq];
     if (piece == W_ROOK || piece == B_ROOK)
-      legalSquares = rookAttack[{sq, blockers}];
+      legalSquares = rookAttack[AttackKey{sq, blockers}];
     else if (piece == W_BISHOP || piece == B_BISHOP)
-      legalSquares = bishopAttack[{sq, blockers}];
+      legalSquares = bishopAttack[AttackKey{sq, blockers}];
     else if (piece == W_QUEEN || piece == B_QUEEN) {
       blockers = allPieces & movementMasks[W_BISHOP][sq];
-      legalSquares = bishopAttack[{sq, blockers}];
+      legalSquares = bishopAttack[AttackKey{sq, blockers}];
 
       blockers = allPieces & movementMasks[W_ROOK][sq];
-      legalSquares |= rookAttack[{sq, blockers}];
+      legalSquares |= rookAttack[AttackKey{sq, blockers}];
     }
   }
 

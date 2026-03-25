@@ -4,8 +4,8 @@ namespace Bitboards {
 
 // precomputed pseudo-legal bitboards for all pieces
 Bitboard movementMasks[pieceTypes][64];
-map<pair<Square, Bitboard>, Bitboard> rookAttack;
-map<pair<Square, Bitboard>, Bitboard> bishopAttack;
+unordered_map<AttackKey, Bitboard, AttackKeyHash> rookAttack;
+unordered_map<AttackKey, Bitboard, AttackKeyHash> bishopAttack;
 
 // forward declaring
 void sliding_pieces();
@@ -247,13 +247,13 @@ void blockers() {
     std::vector<Bitboard> rook_blockers = gen_blockers(movementMasks[W_ROOK][sq]);
     for (Bitboard pattern : rook_blockers) {
       Bitboard legalMoves = legal_rook_squares(sq, pattern);
-      rookAttack[{sq, pattern}] = legalMoves;
+      rookAttack[AttackKey{sq, pattern}] = legalMoves;
     }
 
     std::vector<Bitboard> bishop_blockers = gen_blockers(movementMasks[W_BISHOP][sq]);
     for (Bitboard pattern : bishop_blockers) {
       Bitboard legalMoves = legal_bishop_squares(sq, pattern);
-      bishopAttack[{sq, pattern}] = legalMoves;
+      bishopAttack[AttackKey{sq, pattern}] = legalMoves;
     }
   }
 }

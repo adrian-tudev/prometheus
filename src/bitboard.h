@@ -5,20 +5,35 @@
 #include <bitset>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "types.h"
 
-using std::pair;
-using std::map;
+using std::unordered_map;
 
 namespace Bitboards {
+  struct AttackKey {
+    Square square;
+    Bitboard blockers;
+
+    bool operator==(const AttackKey&) const noexcept = default;
+  };
+
+  struct AttackKeyHash {
+    size_t operator()(const AttackKey& key) const noexcept {
+      size_t h1 = std::hash<Square>{}(key.square);
+      size_t h2 = std::hash<Bitboard>{}(key.blockers);
+      return h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
+    }
+  };
+
   // global precomputed bitboards
   extern Bitboard movementMasks[pieceTypes][64];
-  extern map<pair<Square, Bitboard>, Bitboard> bishopAttack;
-  extern map<pair<Square, Bitboard>, Bitboard> rookAttack;
+  extern unordered_map<AttackKey, Bitboard, AttackKeyHash> bishopAttack;
+  extern unordered_map<AttackKey, Bitboard, AttackKeyHash> rookAttack;
 
   // rook movement masks
   constexpr Bitboard rankMask = 0xFFULL;
