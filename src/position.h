@@ -33,7 +33,7 @@ public:
   Bitboard all_pieces(Color color) const;
   Color get_player() const;
   std::string fen() const;
-  void print() const;
+  void print_board() const;
 
   inline void set_check();
   inline bool is_check() const { return state.in_check; }
@@ -49,12 +49,11 @@ private:
 };
 
 inline PieceType Position::piece_on(Square sq) const {
-  return ((sq >= 0 || sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
+  return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
 }
 
 inline Bitboard Position::get_bitboard_of(PieceType type) const {
-  assert(type != PieceType::EMPTY);
-  return piece_bitboard[type];
+  return type == PieceType::EMPTY ? piece_bitboard[type] : 0;
 }
 
 inline void Position::set_check() {
