@@ -10,7 +10,7 @@ UI::UI() {
 }
 
 std::string read_input() {
-  std::string line;
+  string line;
   std::getline(std::cin, line);
   return line;
 }
@@ -20,7 +20,7 @@ bool UI::is_own_piece(Move move) {
   Color player = positions.back().get_player();
   PieceType piece = positions.back().piece_on(move.from);
   if (piece == EMPTY) {
-    printf("no piece at %s\n", format(move.from).c_str());
+    // printf("no piece at %s\n", format(move.from).c_str());
     return false;
   } else if ((player == WHITE && !piece_is_white(piece)) ||
               (player == BLACK && piece_is_white(piece))) {
@@ -45,7 +45,7 @@ void UI::loop() {
   while (true) {
     engine.set_position(positions.back());
     std::cout << "> ";
-    std::string line = read_input();
+    string line = read_input();
     if (line == "quit" || line == "q") break;
     if (line == "undo" || line == "u") {
       if (positions.size() > 1) {
@@ -64,7 +64,7 @@ void UI::loop() {
     // set position from FEN
     if (line == "fen" || line == "f") {
       std::cout << "enter FEN: ";
-      std::string fen = read_input();
+      string fen = read_input();
       Position pos;
       pos.set(fen);
       pos.print();
@@ -72,17 +72,21 @@ void UI::loop() {
       continue;
     }
 
-    Move move = parse_move(line);
-    // has chosen valid piece
-    if (!is_own_piece(move)) continue;
-    // is valid move for that piece
-    if (!is_move_legal(move)) continue;
+    if (auto move = parse_move(line)) {
+      // has chosen valid piece
+      if (!is_own_piece(*move)) continue;
+      // is valid move for that piece
+      if (!is_move_legal(*move)) continue;
 
-    Position pos = positions.back();
-    pos.do_move(move);
-    pos.print();
-    positions.push_back(pos);
+      Position pos = positions.back();
+      pos.do_move(*move);
+      pos.print();
+      positions.push_back(pos);
 
-    Score score = engine.eval();
+      Score score = engine.eval();
+    } else {
+      std::cout << "Not valid move!" << std::endl;
+      continue;
+    }
   }
 }

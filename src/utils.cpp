@@ -1,6 +1,6 @@
 #include "utils.h"
 
-std::string format(Move move) {
+string format(Move move) {
   std::string res = format(move.from) + format(move.to);
   if (move.promotion != EMPTY) {
     char promoChar = charToPiece[move.promotion];
@@ -9,19 +9,19 @@ std::string format(Move move) {
   return res;
 }
 
-std::string format(Square sq) {
-  return std::string() + files[sq % 8] + ranks[sq / 8];
+string format(Square sq) {
+  return string() + files[sq % 8] + ranks[sq / 8];
 }
 
-Move parse_move(const std::string& str) {
-  assert(str.length() >= 4);
+optional<Move> parse_move(const string& str) {
+  if (str.length() < 4 || str.length() > 5) return std::nullopt;
   Move move;
   move.from = (str[0] - 'a') + (str[1] - '1') * 8;
   move.to = (str[2] - 'a') + (str[3] - '1') * 8;
   if (str.length() == 5) {
     char promoChar = str[4];
     auto it = std::find(charToPiece.begin(), charToPiece.end(), promoChar);
-    assert(it != charToPiece.end());
+    if (it == charToPiece.end()) return std::nullopt;
     move.promotion = (PieceType) std::distance(charToPiece.begin(), it);
   }
   return move;

@@ -49,8 +49,7 @@ private:
 };
 
 inline PieceType Position::piece_on(Square sq) const {
-  assert(sq >= 0 && sq < 64);
-  return board[sq / 8][sq % 8];
+  return ((sq >= 0 || sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
 }
 
 inline Bitboard Position::get_bitboard_of(PieceType type) const {
