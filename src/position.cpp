@@ -167,7 +167,7 @@ void Position::set_bitboard(PieceType type) {
   piece_bitboard[type] = bitboard;
 }
 
-void Position::print() const {
+void Position::print_board() const {
   printf("---------------------------------\n");
   for (int i = 7; i >= 0; i--) {
     printf("|");
@@ -184,6 +184,32 @@ void Position::print() const {
     std::cout << "\n---------------------------------\n";
   }
   std::cout << std::endl;
+}
+
+void Position::print_state() const {
+  std::cout << "State:\n";
+  std::cout << "  player: " << (state.white ? "white" : "black") << "\n";
+  std::cout << "  in_check: " << (state.in_check ? "true" : "false") << "\n";
+
+  std::string castling = "";
+  if (state.castling_rights & CastlingRights::WK) castling += 'K';
+  if (state.castling_rights & CastlingRights::WQ) castling += 'Q';
+  if (state.castling_rights & CastlingRights::BK) castling += 'k';
+  if (state.castling_rights & CastlingRights::BQ) castling += 'q';
+  if (castling.empty()) castling = "-";
+  std::cout << "  castling_rights: " << castling << "\n";
+
+  if (state.enPassant) {
+    int ep_square = __builtin_ctzll(state.enPassant);
+    char file = 'a' + (ep_square % 8);
+    char rank = '1' + (ep_square / 8);
+    std::cout << "  en_passant: " << file << rank << "\n";
+  } else {
+    std::cout << "  en_passant: -\n";
+  }
+
+  std::cout << "  rule50: " << state.rule50 << "\n";
+  std::cout << "  fullMoves: " << state.fullMoves << "\n";
 }
 
 Color Position::get_player() const {

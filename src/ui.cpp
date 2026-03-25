@@ -41,7 +41,7 @@ bool UI::is_move_legal(Move move) {
 }
 
 void UI::loop() {
-  positions.back().print();
+  positions.back().print_board();
   while (true) {
     engine.set_position(positions.back());
     std::cout << "> ";
@@ -50,7 +50,7 @@ void UI::loop() {
     if (line == "undo" || line == "u") {
       if (positions.size() > 1) {
         positions.pop_back();
-        positions.back().print();
+        positions.back().print_board();
       } else {
         printf("no moves to undo!\n");
       }
@@ -67,7 +67,7 @@ void UI::loop() {
       string fen = read_input();
       Position pos;
       pos.set(fen);
-      pos.print();
+      pos.print_board();
       positions.push_back(pos);
       continue;
     }
@@ -80,7 +80,7 @@ void UI::loop() {
 
       Position pos = positions.back();
       pos.do_move(*move);
-      pos.print();
+      pos.print_board();
       positions.push_back(pos);
 
       Score score = engine.eval();

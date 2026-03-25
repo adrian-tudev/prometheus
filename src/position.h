@@ -34,6 +34,7 @@ public:
   Color get_player() const;
   std::string fen() const;
   void print_board() const;
+  void print_state() const;
 
   inline void set_check();
   inline bool is_check() const { return state.in_check; }
