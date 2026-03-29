@@ -15,7 +15,10 @@ OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILDDIR)/%.o,$(SRCS))
 CORE_OBJS = $(filter-out $(BUILDDIR)/main.o,$(OBJS))
 PERFT_OBJ = $(BUILDDIR)/perft.o
 
-.PHONY: all run perft clean
+.PHONY: all run perft clean gui
+
+gui:
+	$(MAKE) -C gui
 
 all: $(BUILDDIR)/$(OUT)
 
