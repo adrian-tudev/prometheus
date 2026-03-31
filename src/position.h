@@ -36,11 +36,29 @@ public:
   void print_board() const;
   void print_state() const;
 
-  inline void set_check();
+  inline void set_check() { state.in_check = 1; }
+
   inline bool is_check() const { return state.in_check; }
-  inline PieceType piece_on(Square sq) const;
-  inline int count_pieces(PieceType type) const;
-  inline Bitboard get_bitboard_of(PieceType type) const;
+
+  inline PieceType piece_on(Square sq) const {
+    return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
+  }
+
+  inline int count_pieces(PieceType type) const { 
+    return __builtin_popcountll(piece_bitboard[type]); 
+  }
+
+  inline Bitboard all_pieces() const {
+    return all_pieces(WHITE) | all_pieces(BLACK);
+  }
+
+  inline Bitboard get_bitboard_of(PieceType type) const {
+    return type == PieceType::EMPTY ? 0 : piece_bitboard[type];
+  }
+
+  inline unsigned int get_castling_rights() const {
+    return state.castling_rights;
+  }
 
 private:
   State state;
@@ -48,21 +66,5 @@ private:
   PieceType board[8][8];
   void set_bitboard(PieceType type);
 };
-
-inline PieceType Position::piece_on(Square sq) const {
-  return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
-}
-
-inline Bitboard Position::get_bitboard_of(PieceType type) const {
-  return type == PieceType::EMPTY ? piece_bitboard[type] : 0;
-}
-
-inline void Position::set_check() {
-  state.in_check = 1;
-}
-
-inline int Position::count_pieces(PieceType type) const {
-  return __builtin_popcountll(piece_bitboard[type]);
-}
 
 #endif
