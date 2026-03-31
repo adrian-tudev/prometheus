@@ -2,7 +2,7 @@
 
 using namespace Bitboards;
 
-std::vector<Move> MoveGen::generate_moves(const Position& pos) {
+vector<Move> MoveGen::generate_moves(const Position& pos) {
   std::vector<Move> moves;
   Color player = pos.get_player();
   Bitboard pieces = pos.all_pieces(player);
@@ -11,49 +11,65 @@ std::vector<Move> MoveGen::generate_moves(const Position& pos) {
     Square sq = __builtin_ctzll(pieces);
     pieces &= pieces - 1; // clear lsb
 
-    std::vector<Move> pieceMoves = generate_moves_at(sq, pos);
+    vector<Move> pieceMoves = generate_moves_at(sq, pos);
     moves.insert(moves.end(), pieceMoves.begin(), pieceMoves.end());
   }
 
   return moves;
 }
 
-std::vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
+vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
   PieceType piece = pos.piece_on(sq);
-  assert(piece != PieceType::EMPTY);
+  if (piece == PieceType::EMPTY) return std::vector<Move>();
+  Color player = piece_is_white(piece) ? WHITE : BLACK;
   // legal squares for the piece on sq
-  Bitboard legalSquares = pseudo_legal_moves(piece, sq, pos);
+  Bitboard legal_squares = pseudo_legal_moves(piece, sq, pos);
+  vector<Move> castling_moves;
 
   // attacks for pawns (different from movement)
   if (piece == W_PAWN || piece == B_PAWN) {
     Bitboard capturable = pos.all_pieces(piece_is_white(piece) ? BLACK : WHITE);
     // TODO make a separate bitboard for captures to enable capture flag
-    legalSquares |= capturable & pawn_attacks(get_color(piece), sq);
+    legal_squares |= capturable & pawn_attacks(get_color(piece), sq);
   }
 
-  // king movement (don't let him commit suicide)
+  // king stuff
   if (piece == W_KING || piece == B_KING) {
     Bitboard enemyAttack = attack_mask(pos);
-    // TODO: in check
     if (pos.get_bitboard_of(piece) & enemyAttack) {
+      // TODO: in check reset all legal moves and investigate further
     }
-    legalSquares &= ~enemyAttack;
-  }
 
-  // castling
-  if (piece == W_KING || piece == B_KING) {
-    legalSquares |= castling(pos);
+    // prevent the king from walking into enemy attacks
+    legal_squares &= ~enemyAttack;
+
+    // add castling
+    castling_moves = castling(pos, enemyAttack);
   }
 
   // can't eat own pieces
   // important: do this after checking for checks to disable the king from capturing a "defended" piece
   Bitboard occupied = piece_is_white(piece) ? pos.all_pieces(WHITE) : pos.all_pieces(BLACK);
-  legalSquares &= ~occupied;
+  legal_squares &= ~occupied;
 
   // pins
 
   // Bitboard to Moves
-  std::vector<Move> moves = bitboard_to_moves(legalSquares, sq);
+  vector<Move> moves = bitboard_to_moves(legal_squares, sq);
+
+  Bitboard enemyPieces = player == WHITE ? pos.all_pieces(BLACK) : pos.all_pieces(WHITE);
+  for (Move& move : moves) {
+    if (enemyPieces & (1ULL << move.to)) {
+      move.flags = static_cast<MoveFlags>(move.flags | CAPTURE);
+    }
+
+    if ((piece == W_PAWN && move.to == move.from + 16) ||
+        (piece == B_PAWN && move.to + 16 == move.from)) {
+      move.flags = static_cast<MoveFlags>(move.flags | DOUBLE_PAWN_PUSH);
+    }
+  }
+
+  moves.insert(moves.end(), castling_moves.begin(), castling_moves.end());
 
   return moves;
 }
@@ -63,54 +79,95 @@ Bitboard MoveGen::pseudo_legal_moves(PieceType piece, Square sq, const Position&
   Bitboard allBlack = pos.all_pieces(BLACK);
   Bitboard allPieces = allWhite | allBlack;
   
-  Bitboard legalSquares = movementMasks[piece][sq];
+  Bitboard legal_squares = movementMasks[piece][sq];
   if (is_sliding(piece)) {
     Bitboard blockers = allPieces & movementMasks[piece][sq];
     if (piece == W_ROOK || piece == B_ROOK)
-      legalSquares = rookAttack[AttackKey{sq, blockers}];
+      legal_squares = rookAttack[AttackKey{sq, blockers}];
     else if (piece == W_BISHOP || piece == B_BISHOP)
-      legalSquares = bishopAttack[AttackKey{sq, blockers}];
+      legal_squares = bishopAttack[AttackKey{sq, blockers}];
     else if (piece == W_QUEEN || piece == B_QUEEN) {
       blockers = allPieces & movementMasks[W_BISHOP][sq];
-      legalSquares = bishopAttack[AttackKey{sq, blockers}];
+      legal_squares = bishopAttack[AttackKey{sq, blockers}];
 
       blockers = allPieces & movementMasks[W_ROOK][sq];
-      legalSquares |= rookAttack[AttackKey{sq, blockers}];
+      legal_squares |= rookAttack[AttackKey{sq, blockers}];
     }
   }
 
   if (piece == W_PAWN) {
     // white pawns can't move to 8th rank
-    legalSquares &= 0x00FFFFFFFFFFFF;
+    legal_squares &= 0x00FFFFFFFFFFFF;
     // can't move forward if square is occupied
     Bitboard occupied = allWhite | allBlack;
-    legalSquares &= ~occupied;
+    legal_squares &= ~occupied;
     // can't do double pawn push if square in front is occupied
     if (sq / 8 == 1 && (occupied & (1ULL << (sq + 8)))) {
-      legalSquares &= ~(1ULL << (sq + 16));
+      legal_squares &= ~(1ULL << (sq + 16));
     }
   } else if (piece == B_PAWN) {
     // black pawns can't move to 1st rank
-    legalSquares &= 0xFFFFFFFFFFFF00;
+    legal_squares &= 0xFFFFFFFFFFFF00;
     // can't move forward if square is occupied
     Bitboard occupied = allWhite | allBlack;
-    legalSquares &= ~occupied;
+    legal_squares &= ~occupied;
     // can't do double pawn push if square in front is occupied
     if (sq / 8 == 6 && (occupied & (1ULL << (sq - 8)))) {
-      legalSquares &= ~(1ULL << (sq - 16));
+      legal_squares &= ~(1ULL << (sq - 16));
     }
   }
 
-  return legalSquares;
+  return legal_squares;
 }
 
-// returns bitboard of legal squares the king can move to when castling
-// 0 if not available
-Bitboard MoveGen::castling(const Position& pos) {
-  Bitboard legalSquares = 0;
-  // TODO
+/* returns bitboard of legal squares the king can move to when castling
+ * 0 if not available
+ *
+ * requirements for castling:
+ * - not in check
+ * - travelling squares between src and dst can't be attacked by enemy pieces
+ * - can't castle through any pieces
+ */
+vector<Move> MoveGen::castling(const Position& pos, Bitboard enemy_attacks) {
+  vector<Move> moves;
 
-  return legalSquares;
+  if (pos.is_check()) return moves;
+
+  Color color = pos.get_player();
+  unsigned int castling_rights = pos.get_castling_rights();
+
+  Bitboard kingside_clear_mask = color == WHITE ? kingsideCastleMaskW : kingsideCastleMaskB;
+  Bitboard queenside_clear_mask = color == WHITE ? queensideCastleMaskW : queensideCastleMaskB;
+  Bitboard queenside_safe_mask = color == WHITE ? 0x0CULL : (0x0CULL << 56);
+
+  CastlingRights kingside = color == WHITE ? WK : BK;
+  CastlingRights queenside = color == WHITE ? WQ : BQ;
+
+  Square king_from = color == WHITE ? 4 : 60;
+  Square kingside_to = color == WHITE ? 6 : 62;
+  Square queenside_to = color == WHITE ? 2 : 58;
+  Bitboard pieces = pos.all_pieces();
+
+  bool is_king_castle_possible =
+      (pieces & kingside_clear_mask) == 0 &&
+      (enemy_attacks & kingside_clear_mask) == 0;
+  bool is_queen_castle_possible =
+      (pieces & queenside_clear_mask) == 0 &&
+      (enemy_attacks & queenside_safe_mask) == 0;
+
+  if ((castling_rights & kingside) && is_king_castle_possible) {
+    Move move = {king_from, kingside_to};
+    move.flags = static_cast<MoveFlags>(move.flags | KING_CASTLE);
+    moves.push_back(move);
+  }
+
+  if ((castling_rights & queenside) && is_queen_castle_possible) {
+    Move move = {king_from, queenside_to};
+    move.flags = static_cast<MoveFlags>(move.flags | QUEEN_CASTLE);
+    moves.push_back(move);
+  }
+
+  return moves;
 }
 
 std::vector<Move> MoveGen::bitboard_to_moves(Bitboard board, Square from) {
@@ -169,4 +226,3 @@ Bitboard MoveGen::attack_mask(const Position& pos) {
 
   return attackSquares;
 }
-
