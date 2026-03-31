@@ -35,6 +35,17 @@ private:
   Bitboard legalTargets = 0;
   std::optional<Move> lastMove;
 
+  // Drag-and-drop state for moving pieces.
+  bool dragArmed = false;
+  bool dragging = false;
+  bool dragWasSelectedOnDown = false;
+  Square dragFrom = (Square) 0;
+  PieceType dragPiece = EMPTY;
+  float dragStartX = 0.0f;
+  float dragStartY = 0.0f;
+  float dragX = 0.0f;
+  float dragY = 0.0f;
+
   int winW = 900;
   int winH = 900;
 
@@ -49,6 +60,10 @@ private:
 
   void handle_event(const SDL_Event& e, bool& running);
   void handle_click(float x, float y);
+  void start_drag(Square sq, float x, float y);
+  void update_drag(float x, float y);
+  void finish_drag(float x, float y);
+  void cancel_drag();
   void update_window_size();
 
   struct BoardGeom {
