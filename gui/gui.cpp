@@ -246,10 +246,10 @@ void GUI::handle_click(float x, float y) {
   }
 
   const Square sq = *sqOpt;
+
+  // If nothing is selected, only own pieces become selected.
   if (!selected) {
-    if (is_own_piece(sq)) {
-      select_square(sq);
-    }
+    if (is_own_piece(sq)) select_square(sq);
     return;
   }
 
@@ -281,9 +281,86 @@ void GUI::handle_click(float x, float y) {
     selected.reset();
     legalTargets = 0;
   } else {
+    // Click on a non-legal square (including empty squares) clears selection.
     selected.reset();
     legalTargets = 0;
   }
+}
+
+void GUI::start_drag(Square sq, float x, float y) {
+  dragArmed = true;
+  dragging = false;
+  dragWasSelectedOnDown = (selected && *selected == sq);
+  dragFrom = sq;
+  dragPiece = pos.piece_on(sq);
+  dragStartX = x;
+  dragStartY = y;
+  dragX = x;
+  dragY = y;
+
+  // Show selection/move targets immediately on mouse down.
+  select_square(sq);
+}
+
+void GUI::update_drag(float x, float y) {
+  if (!dragArmed) return;
+  dragX = x;
+  dragY = y;
+
+  if (!dragging) {
+    const float dx = x - dragStartX;
+    const float dy = y - dragStartY;
+    // Small threshold to avoid starting a drag on tiny hand jitter.
+    if ((dx * dx + dy * dy) >= 16.0f) dragging = true;
+  }
+}
+
+void GUI::cancel_drag() {
+  dragArmed = false;
+  dragging = false;
+  dragWasSelectedOnDown = false;
+  dragPiece = EMPTY;
+}
+
+void GUI::finish_drag(float x, float y) {
+  if (!dragArmed) return;
+
+  // Treat mouse-up without a real drag as a click on the original square.
+  if (!dragging) {
+    // If the piece was already selected, a click toggles it off.
+    if (dragWasSelectedOnDown) {
+      selected.reset();
+      legalTargets = 0;
+    }
+    cancel_drag();
+    return;
+  }
+
+  const BoardGeom g = board_geom();
+  auto dropOpt = square_from_mouse(x, y, g);
+  if (!dropOpt) {
+    // Dropped outside the board: keep selection on the dragged piece.
+    cancel_drag();
+    return;
+  }
+
+  const Square to = *dropOpt;
+  if (to != dragFrom && (legalTargets & (1ULL << to))) {
+    Move mv;
+    mv.from = dragFrom;
+    mv.to = to;
+
+    history.push_back(pos);
+    pos.do_move(mv);
+    lastMove = mv;
+
+    selected.reset();
+    legalTargets = 0;
+  } else if (to != dragFrom && is_own_piece(to)) {
+    select_square(to);
+  }
+
+  cancel_drag();
 }
 
 void GUI::handle_event(const SDL_Event& e, bool& running) {
@@ -297,15 +374,32 @@ void GUI::handle_event(const SDL_Event& e, bool& running) {
       break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
       if (e.button.button == SDL_BUTTON_LEFT) {
-        handle_click(e.button.x, e.button.y);
+        const BoardGeom g = board_geom();
+        auto sqOpt = square_from_mouse(e.button.x, e.button.y, g);
+        if (sqOpt && is_own_piece(*sqOpt)) {
+          start_drag(*sqOpt, e.button.x, e.button.y);
+        } else {
+          cancel_drag();
+          handle_click(e.button.x, e.button.y);
+        }
       } else if (e.button.button == SDL_BUTTON_RIGHT) {
+        cancel_drag();
         selected.reset();
         legalTargets = 0;
+      }
+      break;
+    case SDL_EVENT_MOUSE_MOTION:
+      update_drag(e.motion.x, e.motion.y);
+      break;
+    case SDL_EVENT_MOUSE_BUTTON_UP:
+      if (e.button.button == SDL_BUTTON_LEFT) {
+        finish_drag(e.button.x, e.button.y);
       }
       break;
     case SDL_EVENT_KEY_DOWN:
       if (e.key.repeat) break;
       if (e.key.scancode == SDL_SCANCODE_ESCAPE) {
+        cancel_drag();
         if (selected) {
           selected.reset();
           legalTargets = 0;
@@ -313,8 +407,10 @@ void GUI::handle_event(const SDL_Event& e, bool& running) {
           running = false;
         }
       } else if (e.key.scancode == SDL_SCANCODE_U) {
+        cancel_drag();
         undo();
       } else if (e.key.scancode == SDL_SCANCODE_R) {
+        cancel_drag();
         reset_position();
       }
       break;
@@ -356,12 +452,12 @@ void GUI::render_highlights(const BoardGeom& g) {
 
   // selected highlight
   if (selected) {
-    SDL_FRect r = rect_for_square(*selected, g);
-    SDL_SetRenderDrawColor(renderer, 40, 160, 255, 220);
-    SDL_RenderRect(renderer, &r);
-    // make border thicker
-    SDL_FRect r2{r.x + 1.0f, r.y + 1.0f, r.w - 2.0f, r.h - 2.0f};
-    SDL_RenderRect(renderer, &r2);
+    // Don't show the blue selection fill for empty-square selection.
+    if (pos.piece_on(*selected) != EMPTY) {
+      SDL_FRect r = rect_for_square(*selected, g);
+      SDL_SetRenderDrawColor(renderer, 40, 160, 255, 110);
+      SDL_RenderFillRect(renderer, &r);
+    }
   }
 
   // legal target highlights
@@ -382,10 +478,9 @@ void GUI::render_highlights(const BoardGeom& g) {
         SDL_SetRenderDrawColor(renderer, 30, 30, 30, 90);
         SDL_RenderFillRect(renderer, &dot);
       } else {
-        SDL_SetRenderDrawColor(renderer, 220, 30, 30, 160);
-        SDL_RenderRect(renderer, &r);
-        SDL_FRect r2{r.x + 2.0f, r.y + 2.0f, r.w - 4.0f, r.h - 4.0f};
-        SDL_RenderRect(renderer, &r2);
+        // Capture target: tint the whole square.
+        SDL_SetRenderDrawColor(renderer, 220, 30, 30, 70);
+        SDL_RenderFillRect(renderer, &r);
       }
     }
   }
@@ -393,6 +488,8 @@ void GUI::render_highlights(const BoardGeom& g) {
 
 void GUI::render_pieces(const BoardGeom& g) {
   for (Square sq = 0; sq < 64; sq++) {
+    if (dragging && dragPiece != EMPTY && sq == dragFrom) continue;
+
     PieceType p = pos.piece_on(sq);
     if (p == EMPTY) continue;
     SDL_Texture* tex = pieceTex[p];
@@ -403,6 +500,22 @@ void GUI::render_pieces(const BoardGeom& g) {
     const float pad = std::max(2.0f, r.w * 0.08f);
     SDL_FRect dst{r.x + pad, r.y + pad, r.w - 2 * pad, r.h - 2 * pad};
     SDL_RenderTexture(renderer, tex, nullptr, &dst);
+  }
+
+  // Draw dragged piece on top, following the cursor.
+  if (dragging && dragPiece != EMPTY) {
+    SDL_Texture* tex = pieceTex[dragPiece];
+    if (tex) {
+      SDL_FRect r{
+        dragX - g.tile * 0.5f,
+        dragY - g.tile * 0.5f,
+        g.tile,
+        g.tile,
+      };
+      const float pad = std::max(2.0f, r.w * 0.08f);
+      SDL_FRect dst{r.x + pad, r.y + pad, r.w - 2 * pad, r.h - 2 * pad};
+      SDL_RenderTexture(renderer, tex, nullptr, &dst);
+    }
   }
 }
 
