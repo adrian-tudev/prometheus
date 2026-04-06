@@ -18,7 +18,8 @@ void Position::do_move(Move move, bool updateState) {
     rookMove.from = piece_is_white(movedPiece) ? 7 : 63;
     rookMove.to = piece_is_white(movedPiece) ? 5 : 61;
     move_piece(rookMove);
-  } else if (move.flags & MoveFlags::QUEEN_CASTLE) {
+  }
+  if (move.flags & MoveFlags::QUEEN_CASTLE) {
     Move rookMove;
     rookMove.from = piece_is_white(movedPiece) ? 0 : 56;
     rookMove.to = piece_is_white(movedPiece) ? 3 : 59;
@@ -46,12 +47,28 @@ void Position::move_piece(Move& move) {
   Square to_r = to_idx / 8;
   Square to_c = to_idx % 8;
 
-  // Remove captured piece from its bitboard (if any)
-  PieceType captured_piece = board[to_r][to_c];
-  move.captured_piece = board[to_r][to_c];
-  if (move.captured_piece != PieceType::EMPTY) {
-    piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], to_idx);
-    //move.captured_piece = captured_piece;
+  // Remove captured piece from its bitboard (if any), including en-passant captures.
+  move.captured_piece = PieceType::EMPTY;
+  if ((move.flags & MoveFlags::EN_PASSANT) && (pc == W_PAWN || pc == B_PAWN)) {
+    Square captured_idx = (pc == W_PAWN) ? static_cast<Square>(to_idx - 8)
+                                         : static_cast<Square>(to_idx + 8);
+    Square captured_r = captured_idx / 8;
+    Square captured_c = captured_idx % 8;
+    PieceType expected_captured_pawn = (pc == W_PAWN) ? B_PAWN : W_PAWN;
+    PieceType captured_piece = board[captured_r][captured_c];
+
+    // En passant always captures an enemy pawn.
+    move.captured_piece = expected_captured_pawn;
+    if (captured_piece != PieceType::EMPTY) {
+      piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], captured_idx);
+      board[captured_r][captured_c] = PieceType::EMPTY;
+    }
+  } else {
+    PieceType captured_piece = board[to_r][to_c];
+    move.captured_piece = captured_piece;
+    if (captured_piece != PieceType::EMPTY) {
+      piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], to_idx);
+    }
   }
 
   // Set piece at destination square bitboard
@@ -66,6 +83,14 @@ void Position::update_state(const Move& move, PieceType movedPiece) {
   Square from_idx = move.from;  // Already a square index (0-63)
   Square to_idx = move.to;
   PieceType pc = movedPiece;
+
+  // En passant rights are valid for one ply and only after a double pawn push.
+  state.enPassant = 0;
+  if ((move.flags & MoveFlags::DOUBLE_PAWN_PUSH) && (pc == W_PAWN || pc == B_PAWN)) {
+    Square ep_square = (pc == W_PAWN) ? static_cast<Square>(from_idx + 8)
+                                      : static_cast<Square>(from_idx - 8);
+    state.enPassant = 1ULL << ep_square;
+  }
 
   state.fullMoves += !state.white;
 

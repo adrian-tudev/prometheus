@@ -338,7 +338,12 @@ void GUI::handle_click(float x, float y) {
       return m.to == sq;
     });
     if (it != legalMoves.end()) mv = *it;
-    mv.captured_piece = pos.piece_on(sq);
+    if (mv.flags & EN_PASSANT) {
+      PieceType movingPiece = pos.piece_on(from);
+      mv.captured_piece = piece_is_white(movingPiece) ? B_PAWN : W_PAWN;
+    } else {
+      mv.captured_piece = pos.piece_on(sq);
+    }
 
     history.push_back(pos);
     redoHistory.clear();
@@ -419,7 +424,12 @@ void GUI::finish_drag(float x, float y) {
       return m.to == to;
     });
     if (it != legalMoves.end()) mv = *it;
-    mv.captured_piece = pos.piece_on(to);
+    if (mv.flags & EN_PASSANT) {
+      PieceType movingPiece = pos.piece_on(dragFrom);
+      mv.captured_piece = piece_is_white(movingPiece) ? B_PAWN : W_PAWN;
+    } else {
+      mv.captured_piece = pos.piece_on(to);
+    }
 
     history.push_back(pos);
     redoHistory.clear();

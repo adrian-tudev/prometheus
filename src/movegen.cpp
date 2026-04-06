@@ -42,13 +42,18 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
   if (piece == PieceType::EMPTY) return std::vector<Move>();
   Color player = piece_is_white(piece) ? WHITE : BLACK;
   Color enemy = static_cast<Color>(!player);
+  Bitboard enPassantSquare = pos.get_state().enPassant;
   // legal squares for the piece on sq
   Bitboard legal_squares = pseudo_legal_moves(piece, sq, pos);
 
   // attacks for pawns (different from movement)
   if (piece == W_PAWN || piece == B_PAWN) {
+    Bitboard attacks = pawn_attacks(get_color(piece), sq);
     Bitboard capturable = pos.all_pieces(piece_is_white(piece) ? BLACK : WHITE);
-    legal_squares |= capturable & pawn_attacks(get_color(piece), sq);
+    legal_squares |= capturable & attacks;
+
+    // En passant is only available if this pawn attacks the en-passant target square.
+    legal_squares |= enPassantSquare & attacks;
   }
 
   // king stuff
@@ -79,6 +84,11 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
   for (Move& move : moves) {
     if (enemyPieces & (1ULL << move.to)) {
       move.flags = static_cast<MoveFlags>(move.flags | CAPTURE);
+    }
+
+    if ((piece == W_PAWN || piece == B_PAWN) &&
+        (enPassantSquare & (1ULL << move.to))) {
+      move.flags = static_cast<MoveFlags>(move.flags | EN_PASSANT | CAPTURE);
     }
 
     if ((piece == W_PAWN && move.to == move.from + 16) ||
@@ -125,7 +135,7 @@ Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
 
   if (piece == W_PAWN) {
     // white pawns can't move to 8th rank
-    legal_squares &= 0x00FFFFFFFFFFFF;
+    legal_squares &= 0x00FFFFFFFFFFFFFFULL;
     // can't move forward if square is occupied
     Bitboard occupied = allWhite | allBlack;
     legal_squares &= ~occupied;
@@ -135,7 +145,7 @@ Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
     }
   } else if (piece == B_PAWN) {
     // black pawns can't move to 1st rank
-    legal_squares &= 0xFFFFFFFFFFFF00;
+    legal_squares &= 0xFFFFFFFFFFFFFF00ULL;
     // can't move forward if square is occupied
     Bitboard occupied = allWhite | allBlack;
     legal_squares &= ~occupied;

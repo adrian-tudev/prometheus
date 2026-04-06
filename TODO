@@ -5,25 +5,25 @@ beat trust-engine: https://github.com/modig5/trust-engine
 
 ## current
 -------------
-- move the rook after castling in do_move()
+- update the State struct correctly
 
 ## features
 -------------
-- update the State struct correctly
+- handle check
 - parse complete FEN string
-- pins
-- en passant
-- move flags for Move struct
 - serialize precomputed blocker table for faster startups
 
 ## bugs
-- BUG: when castling squares are attacked and then blocked it sometimes doesn't work :(
 
 ## fixed bugs?
 - terrific pawn movement :(
 - king shouldn't be able to walk into a check ("defended pieces")
+- BUG: when castling squares are attacked and then blocked it sometimes doesn't work :(
 
 ## archive
+- en passant
+- move flags for Move struct
+- move the rook after castling in do_move()
 - castling
 - "ui"
 - should be able to print FEN from Position
