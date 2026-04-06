@@ -11,23 +11,17 @@
 
 using std::vector;
 
-class MoveGen {
-public:
-  MoveGen() = default;
-  ~MoveGen() = default;
+namespace MoveGen {
 
-  // all moves for current player
-  vector<Move> generate_moves(const Position& pos);
+// all moves for current player
+vector<Move> generate_moves(const Position& pos);
 
-  // all moves for a specific piece
-  vector<Move> generate_moves_at(Square sq, const Position& pos);
+// all moves for a specific piece
+vector<Move> generate_moves_at(Square sq, const Position& pos);
 
-private:
-  Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos);
-  vector<Move> castling(const Position& pos, Bitboard enemyAttacks);
-  vector<Move> bitboard_to_moves(Bitboard board, Square from);
-  Bitboard pawn_attacks(Color color, Square sq);
-  Bitboard attack_mask(const Position& pos);
-};
+// true if the given player's king is currently attacked
+bool is_in_check(const Position& pos, Color player);
+
+} // namespace MoveGen
 
 #endif

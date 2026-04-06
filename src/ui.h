@@ -16,9 +16,6 @@ private:
   // stores history of positions
   std::vector<Position> positions;
 
-  // for user input validation
-  MoveGen movegen;
-
   bool is_own_piece(Move move);
   bool is_move_legal(Move move);
 };

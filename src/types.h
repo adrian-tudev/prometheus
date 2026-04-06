@@ -37,7 +37,8 @@ enum MoveFlags {
   KING_CASTLE = 1 << 2,
   QUEEN_CASTLE = 1 << 3,
   EN_PASSANT = 1 << 4,
-  PROMOTION = 1 << 5
+  PROMOTION = 1 << 5,
+  CHECK = 1 << 6,
 };
 
 struct Move {

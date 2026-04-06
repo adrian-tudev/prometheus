@@ -12,7 +12,6 @@
 
 struct State {
   bool white = 1;
-  bool in_check = 0;
   unsigned int castling_rights : 4 = 0b1111;
   // 50 "halfmoves" 
   int rule50 = 0; 
@@ -35,10 +34,7 @@ public:
   std::string fen() const;
   void print_board() const;
   void print_state() const;
-
-  inline void set_check() { state.in_check = 1; }
-
-  inline bool is_check() const { return state.in_check; }
+  bool is_check() const;
 
   inline PieceType piece_on(Square sq) const {
     return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
@@ -60,9 +56,13 @@ public:
     return state.castling_rights;
   }
 
+  inline const State& get_state() const {
+    return state;
+  }
+
 private:
   void move_piece(Move& move);
-  void update_state(const Move& move);
+  void update_state(const Move& move, PieceType movedPiece);
 
   State state;
   Bitboard piece_bitboard[pieceTypes];

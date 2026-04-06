@@ -1,5 +1,6 @@
 #include <cassert>
 #include "position.h"
+#include "movegen.h"
 
 using namespace Bitboards;
 
@@ -8,21 +9,16 @@ void Position::do_move(Move move, bool updateState) {
   uint8_t from_idx = move.from;  // Already a square index (0-63)
   Square from_r = from_idx / 8;
   Square from_c = from_idx % 8;
-  PieceType pc = board[from_r][from_c];
+  PieceType movedPiece = board[from_r][from_c];
 
-  switch (move.flags) {
-    case KING_CASTLE:
-      break;
-    case QUEEN_CASTLE:
-      break;
-    default:
-      break;
+  if (move.flags & MoveFlags::KING_CASTLE) {
   }
-
+  if (move.flags & MoveFlags::QUEEN_CASTLE) {
+  }
   move_piece(move);
 
   if (updateState) {
-    update_state(move);
+    update_state(move, movedPiece);
   }
 }
 
@@ -58,11 +54,9 @@ void Position::move_piece(Move& move) {
   board[to_r][to_c] = pc;
 }
 
-void Position::update_state(const Move& move) {
+void Position::update_state(const Move& move, PieceType movedPiece) {
   Square from_idx = move.from;  // Already a square index (0-63)
-  Square from_r = from_idx / 8;
-  Square from_c = from_idx % 8;
-  PieceType pc = board[from_r][from_c];
+  PieceType pc = movedPiece;
 
   // change player
   state.white = !state.white;
@@ -76,9 +70,9 @@ void Position::update_state(const Move& move) {
 
   // update castling rights if king or rook moves
   if (pc == W_KING) {
-    state.castling_rights &= CastlingRights::WK | CastlingRights::WQ;  // Clear white castling rights
+    state.castling_rights &= ~(CastlingRights::WK | CastlingRights::WQ);
   } else if (pc == B_KING) {
-    state.castling_rights &= CastlingRights::BK | CastlingRights::BQ;  // Clear black castling rights
+    state.castling_rights &= ~(CastlingRights::BK | CastlingRights::BQ);
   } else if (pc == W_ROOK) {
     if (from_idx == 0) state.castling_rights &= ~CastlingRights::WK;  // a1 rook moved
     else if (from_idx == 7) state.castling_rights &= ~CastlingRights::WQ;  // h1 rook moved
@@ -86,6 +80,7 @@ void Position::update_state(const Move& move) {
     if (from_idx == 56) state.castling_rights &= ~CastlingRights::BK;  // a8 rook moved
     else if (from_idx == 63) state.castling_rights &= ~CastlingRights::BQ;  // h8 rook moved
   }
+
 }
 
 std::string Position::fen() const {
@@ -217,7 +212,7 @@ void Position::print_board() const {
 void Position::print_state() const {
   std::cout << "State:\n";
   std::cout << "  player: " << (state.white ? "white" : "black") << "\n";
-  std::cout << "  in_check: " << (state.in_check ? "true" : "false") << "\n";
+  std::cout << "  in_check: " << (is_check() ? "true" : "false") << "\n";
 
   std::string castling = "";
   if (state.castling_rights & CastlingRights::WK) castling += 'K';
@@ -243,3 +238,8 @@ void Position::print_state() const {
 Color Position::get_player() const {
   return state.white ? Color::WHITE : Color::BLACK;
 }
+
+bool Position::is_check() const {
+  return MoveGen::is_in_check(*this, get_player());
+}
+  

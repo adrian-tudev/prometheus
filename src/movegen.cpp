@@ -2,7 +2,19 @@
 
 using namespace Bitboards;
 
-vector<Move> MoveGen::generate_moves(const Position& pos) {
+namespace MoveGen {
+
+namespace {
+
+Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos);
+vector<Move> castling(const Position& pos, Bitboard enemyAttacks);
+vector<Move> bitboard_to_moves(Bitboard board, Square from);
+Bitboard pawn_attacks(Color color, Square sq);
+Bitboard attack_mask(const Position& pos, Color player);
+
+} // namespace
+
+vector<Move> generate_moves(const Position& pos) {
   std::vector<Move> moves;
   Color player = pos.get_player();
   Bitboard pieces = pos.all_pieces(player);
@@ -18,24 +30,31 @@ vector<Move> MoveGen::generate_moves(const Position& pos) {
   return moves;
 }
 
-vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
+bool is_in_check(const Position& pos, Color player) {
+  Color enemy = player == WHITE ? BLACK : WHITE;
+  Bitboard king = player == WHITE ? pos.get_bitboard_of(W_KING) : pos.get_bitboard_of(B_KING);
+  Bitboard enemyAttacks = attack_mask(pos, enemy);
+  return (king & enemyAttacks) != 0;
+}
+
+vector<Move> generate_moves_at(Square sq, const Position& pos) {
   PieceType piece = pos.piece_on(sq);
   if (piece == PieceType::EMPTY) return std::vector<Move>();
   Color player = piece_is_white(piece) ? WHITE : BLACK;
+  Color enemy = static_cast<Color>(!player);
   // legal squares for the piece on sq
   Bitboard legal_squares = pseudo_legal_moves(piece, sq, pos);
-  vector<Move> castling_moves;
 
   // attacks for pawns (different from movement)
   if (piece == W_PAWN || piece == B_PAWN) {
     Bitboard capturable = pos.all_pieces(piece_is_white(piece) ? BLACK : WHITE);
-    // TODO make a separate bitboard for captures to enable capture flag
     legal_squares |= capturable & pawn_attacks(get_color(piece), sq);
   }
 
   // king stuff
+  vector<Move> castling_moves;
   if (piece == W_KING || piece == B_KING) {
-    Bitboard enemyAttack = attack_mask(pos);
+    Bitboard enemyAttack = attack_mask(pos, enemy);
     if (pos.get_bitboard_of(piece) & enemyAttack) {
       // TODO: in check reset all legal moves and investigate further
     }
@@ -52,12 +71,11 @@ vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
   Bitboard occupied = piece_is_white(piece) ? pos.all_pieces(WHITE) : pos.all_pieces(BLACK);
   legal_squares &= ~occupied;
 
-  // pins
-
   // Bitboard to Moves
   vector<Move> moves = bitboard_to_moves(legal_squares, sq);
 
-  Bitboard enemyPieces = player == WHITE ? pos.all_pieces(BLACK) : pos.all_pieces(WHITE);
+  // add flags for generated moves
+  Bitboard enemyPieces = pos.all_pieces(enemy);
   for (Move& move : moves) {
     if (enemyPieces & (1ULL << move.to)) {
       move.flags = static_cast<MoveFlags>(move.flags | CAPTURE);
@@ -67,6 +85,14 @@ vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
         (piece == B_PAWN && move.to + 16 == move.from)) {
       move.flags = static_cast<MoveFlags>(move.flags | DOUBLE_PAWN_PUSH);
     }
+
+    Position next = pos;
+    next.do_move(move, false);
+    if (is_in_check(next, enemy)) {
+      move.flags = static_cast<MoveFlags>(move.flags | CHECK);
+    }
+
+    // TODO: promotions/en-passant flags
   }
 
   moves.insert(moves.end(), castling_moves.begin(), castling_moves.end());
@@ -74,7 +100,9 @@ vector<Move> MoveGen::generate_moves_at(Square sq, const Position& pos) {
   return moves;
 }
 
-Bitboard MoveGen::pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
+namespace {
+
+Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
   Bitboard allWhite = pos.all_pieces(WHITE);
   Bitboard allBlack = pos.all_pieces(BLACK);
   Bitboard allPieces = allWhite | allBlack;
@@ -128,7 +156,7 @@ Bitboard MoveGen::pseudo_legal_moves(PieceType piece, Square sq, const Position&
  * - travelling squares between src and dst can't be attacked by enemy pieces
  * - can't castle through any pieces
  */
-vector<Move> MoveGen::castling(const Position& pos, Bitboard enemy_attacks) {
+vector<Move> castling(const Position& pos, Bitboard enemy_attacks) {
   vector<Move> moves;
 
   if (pos.is_check()) return moves;
@@ -170,7 +198,7 @@ vector<Move> MoveGen::castling(const Position& pos, Bitboard enemy_attacks) {
   return moves;
 }
 
-std::vector<Move> MoveGen::bitboard_to_moves(Bitboard board, Square from) {
+std::vector<Move> bitboard_to_moves(Bitboard board, Square from) {
   std::vector<Move> moves;
   for (Square to = 0; to < 64; to++) {
     if (board & (1ULL << to)) {
@@ -181,7 +209,7 @@ std::vector<Move> MoveGen::bitboard_to_moves(Bitboard board, Square from) {
   return moves;
 }
 
-Bitboard MoveGen::pawn_attacks(Color color, Square sq) {
+Bitboard pawn_attacks(Color color, Square sq) {
   Bitboard attacks = 0;
   if (color == WHITE) {
     if (sq % 8 != 0 && sq + 7 < 64) // not a-file
@@ -197,15 +225,13 @@ Bitboard MoveGen::pawn_attacks(Color color, Square sq) {
   return attacks;
 }
 
-// returns bitboard of all squares attacked by 'attacker' 
-Bitboard MoveGen::attack_mask(const Position& pos) {
-  Color attacker = pos.get_player() == WHITE ? BLACK : WHITE;
-
+// returns bitboard of all squares attacked by the given player
+Bitboard attack_mask(const Position& pos, Color player) {
   Bitboard attackSquares = 0;
   Bitboard allWhite = pos.all_pieces(WHITE);
   Bitboard allBlack = pos.all_pieces(BLACK);
 
-  int start = attacker == WHITE ? W_PAWN : B_PAWN;
+  int start = player == WHITE ? W_PAWN : B_PAWN;
   int end = start + 6;
   for (int type = start; type < end; type++) {
     Bitboard pieces = pos.get_bitboard_of((PieceType) type);
@@ -215,7 +241,7 @@ Bitboard MoveGen::attack_mask(const Position& pos) {
 
       Bitboard legalSquares = 0;
       if (type == W_PAWN || type == B_PAWN) {
-        legalSquares = pawn_attacks(attacker, sq);
+        legalSquares = pawn_attacks(player, sq);
       } else {
         legalSquares = pseudo_legal_moves((PieceType) type, sq, pos);
       }
@@ -226,3 +252,7 @@ Bitboard MoveGen::attack_mask(const Position& pos) {
 
   return attackSquares;
 }
+
+} // namespace
+
+} // namespace MoveGen

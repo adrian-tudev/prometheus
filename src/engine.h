@@ -17,7 +17,6 @@ public:
   void set_position(const Position& pos) { position = pos; }
 
 private:
-  MoveGen moveGenerator;
   Position position;
 
   Score material_score();

@@ -31,7 +31,7 @@ bool UI::is_own_piece(Move move) {
 }
 
 bool UI::is_move_legal(Move move) {
-  std::vector<Move> legalMoves = movegen.generate_moves_at(move.from, positions.back());
+  std::vector<Move> legalMoves = MoveGen::generate_moves_at(move.from, positions.back());
   auto it = std::find(legalMoves.begin(), legalMoves.end(), move);
   if (it == legalMoves.end()) {
     printf("illegal move!\n");

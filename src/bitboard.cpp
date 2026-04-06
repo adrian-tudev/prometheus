@@ -25,7 +25,8 @@ void init() {
 
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  printf("Bitboards computed in %ld ms.\n", duration.count());
+  long long ms = (long long) duration.count();
+  printf("Bitboards computed in %lld ms.\n", ms);
 }
 
 // print bitboard in 8x8 format
@@ -144,7 +145,9 @@ void nonsliding_pieces() {
     }
     int8_t knightDirs[] = {-17, -15, -10, -6, 6, 10, 15, 17};
     for (int8_t dir : knightDirs) {
-      movementMasks[W_KNIGHT][square] |= knightBox & (1ULL << (square + dir));
+      int target = (int) square + dir;
+      if (target < 0 || target >= 64) continue;
+      movementMasks[W_KNIGHT][square] |= knightBox & (1ULL << target);
     }
 
     movementMasks[W_KING][square] = 0;
