@@ -6,7 +6,7 @@ SDL_CFLAGS := $(shell pkg-config --cflags sdl3 sdl3-image 2>/dev/null)
 SDL_LIBS := $(shell pkg-config --libs sdl3 sdl3-image 2>/dev/null)
 
 BUILDDIR = ../bin
-OUT = prometheus-gui
+OUT = app
 
 GUI_SRCS = main.cpp gui.cpp
 GUI_OBJS = $(patsubst %.cpp,$(BUILDDIR)/gui_%.o,$(GUI_SRCS))

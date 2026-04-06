@@ -61,6 +61,9 @@ public:
   }
 
 private:
+  void move_piece(Move& move);
+  void update_state(const Move& move);
+
   State state;
   Bitboard piece_bitboard[pieceTypes];
   PieceType board[8][8];

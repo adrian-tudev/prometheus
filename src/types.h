@@ -43,8 +43,9 @@ enum MoveFlags {
 struct Move {
   Square from;
   Square to;
-  MoveFlags flags = static_cast<MoveFlags>(0);
   PieceType promotion = EMPTY;
+  PieceType captured_piece = EMPTY;
+  MoveFlags flags = static_cast<MoveFlags>(0);
 };
 
 inline bool operator==(const Move& a, const Move& b) {

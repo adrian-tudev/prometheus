@@ -10,6 +10,31 @@ void Position::do_move(Move move, bool updateState) {
   Square from_c = from_idx % 8;
   PieceType pc = board[from_r][from_c];
 
+  switch (move.flags) {
+    case KING_CASTLE:
+      break;
+    case QUEEN_CASTLE:
+      break;
+    default:
+      break;
+  }
+
+  move_piece(move);
+
+  if (updateState) {
+    update_state(move);
+  }
+}
+
+void Position::undo_move(const Move move) {
+}
+
+void Position::move_piece(Move& move) {
+  Square from_idx = move.from;  // Already a square index (0-63)
+  Square from_r = from_idx / 8;
+  Square from_c = from_idx % 8;
+  PieceType pc = board[from_r][from_c];
+
   // Clear piece from source square bitboard
   piece_bitboard[pc] = clear_bit(piece_bitboard[pc], from_idx);
 
@@ -19,9 +44,10 @@ void Position::do_move(Move move, bool updateState) {
 
   // Remove captured piece from its bitboard (if any)
   PieceType captured_piece = board[to_r][to_c];
-  if (captured_piece != PieceType::EMPTY) {
+  move.captured_piece = board[to_r][to_c];
+  if (move.captured_piece != PieceType::EMPTY) {
     piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], to_idx);
-    move.captured_piece = captured_piece;
+    //move.captured_piece = captured_piece;
   }
 
   // Set piece at destination square bitboard
@@ -30,34 +56,36 @@ void Position::do_move(Move move, bool updateState) {
   // Update board array
   board[from_r][from_c] = PieceType::EMPTY;
   board[to_r][to_c] = pc;
-
-  if (updateState) {
-    // change player
-    state.white = !state.white;
-
-    // update 50-move rule counter
-    if (pc == W_PAWN || pc == B_PAWN || captured_piece != PieceType::EMPTY) {
-      state.rule50 = 0;
-    } else {
-      state.rule50++;
-    }
-
-    // update castling rights if king or rook moves
-    if (pc == W_KING) {
-      state.castling_rights &= CastlingRights::WK | CastlingRights::WQ;  // Clear white castling rights
-    } else if (pc == B_KING) {
-      state.castling_rights &= CastlingRights::BK | CastlingRights::BQ;  // Clear black castling rights
-    } else if (pc == W_ROOK) {
-      if (from_idx == 0) state.castling_rights &= ~CastlingRights::WK;  // a1 rook moved
-      else if (from_idx == 7) state.castling_rights &= ~CastlingRights::WQ;  // h1 rook moved
-    } else if (pc == B_ROOK) {
-      if (from_idx == 56) state.castling_rights &= ~CastlingRights::BK;  // a8 rook moved
-      else if (from_idx == 63) state.castling_rights &= ~CastlingRights::BQ;  // h8 rook moved
-    }
-  }
 }
 
-void Position::undo_move(const Move move) {
+void Position::update_state(const Move& move) {
+  Square from_idx = move.from;  // Already a square index (0-63)
+  Square from_r = from_idx / 8;
+  Square from_c = from_idx % 8;
+  PieceType pc = board[from_r][from_c];
+
+  // change player
+  state.white = !state.white;
+
+  // update 50-move rule counter
+  if (pc == W_PAWN || pc == B_PAWN || move.captured_piece != PieceType::EMPTY) {
+    state.rule50 = 0;
+  } else {
+    state.rule50++;
+  }
+
+  // update castling rights if king or rook moves
+  if (pc == W_KING) {
+    state.castling_rights &= CastlingRights::WK | CastlingRights::WQ;  // Clear white castling rights
+  } else if (pc == B_KING) {
+    state.castling_rights &= CastlingRights::BK | CastlingRights::BQ;  // Clear black castling rights
+  } else if (pc == W_ROOK) {
+    if (from_idx == 0) state.castling_rights &= ~CastlingRights::WK;  // a1 rook moved
+    else if (from_idx == 7) state.castling_rights &= ~CastlingRights::WQ;  // h1 rook moved
+  } else if (pc == B_ROOK) {
+    if (from_idx == 56) state.castling_rights &= ~CastlingRights::BK;  // a8 rook moved
+    else if (from_idx == 63) state.castling_rights &= ~CastlingRights::BQ;  // h8 rook moved
+  }
 }
 
 std::string Position::fen() const {
