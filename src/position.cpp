@@ -11,11 +11,19 @@ void Position::do_move(Move move, bool updateState) {
   Square from_c = from_idx % 8;
   PieceType movedPiece = board[from_r][from_c];
 
-  if (move.flags & MoveFlags::KING_CASTLE) {
-  }
-  if (move.flags & MoveFlags::QUEEN_CASTLE) {
-  }
   move_piece(move);
+
+  if (move.flags & MoveFlags::KING_CASTLE) {
+    Move rookMove;
+    rookMove.from = piece_is_white(movedPiece) ? 7 : 63;
+    rookMove.to = piece_is_white(movedPiece) ? 5 : 61;
+    move_piece(rookMove);
+  } else if (move.flags & MoveFlags::QUEEN_CASTLE) {
+    Move rookMove;
+    rookMove.from = piece_is_white(movedPiece) ? 0 : 56;
+    rookMove.to = piece_is_white(movedPiece) ? 3 : 59;
+    move_piece(rookMove);
+  }
 
   if (updateState) {
     update_state(move, movedPiece);
@@ -56,10 +64,14 @@ void Position::move_piece(Move& move) {
 
 void Position::update_state(const Move& move, PieceType movedPiece) {
   Square from_idx = move.from;  // Already a square index (0-63)
+  Square to_idx = move.to;
   PieceType pc = movedPiece;
+
+  state.fullMoves += !state.white;
 
   // change player
   state.white = !state.white;
+
 
   // update 50-move rule counter
   if (pc == W_PAWN || pc == B_PAWN || move.captured_piece != PieceType::EMPTY) {
@@ -74,11 +86,20 @@ void Position::update_state(const Move& move, PieceType movedPiece) {
   } else if (pc == B_KING) {
     state.castling_rights &= ~(CastlingRights::BK | CastlingRights::BQ);
   } else if (pc == W_ROOK) {
-    if (from_idx == 0) state.castling_rights &= ~CastlingRights::WK;  // a1 rook moved
-    else if (from_idx == 7) state.castling_rights &= ~CastlingRights::WQ;  // h1 rook moved
+    if (from_idx == 0) state.castling_rights &= ~CastlingRights::WQ;  // a1 rook moved
+    else if (from_idx == 7) state.castling_rights &= ~CastlingRights::WK;  // h1 rook moved
   } else if (pc == B_ROOK) {
-    if (from_idx == 56) state.castling_rights &= ~CastlingRights::BK;  // a8 rook moved
-    else if (from_idx == 63) state.castling_rights &= ~CastlingRights::BQ;  // h8 rook moved
+    if (from_idx == 56) state.castling_rights &= ~CastlingRights::BQ;  // a8 rook moved
+    else if (from_idx == 63) state.castling_rights &= ~CastlingRights::BK;  // h8 rook moved
+  }
+
+  // captured rook on original square also removes castling rights
+  if (move.captured_piece == W_ROOK) {
+    if (to_idx == 0) state.castling_rights &= ~CastlingRights::WQ;
+    else if (to_idx == 7) state.castling_rights &= ~CastlingRights::WK;
+  } else if (move.captured_piece == B_ROOK) {
+    if (to_idx == 56) state.castling_rights &= ~CastlingRights::BQ;
+    else if (to_idx == 63) state.castling_rights &= ~CastlingRights::BK;
   }
 
 }
