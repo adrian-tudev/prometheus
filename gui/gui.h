@@ -27,8 +27,8 @@ private:
 
   std::array<SDL_Texture*, pieceTypes> pieceTex{};
 
-  MoveGen movegen;
   std::vector<Position> history;
+  std::vector<Position> redoHistory;
   Position pos;
 
   std::optional<Square> selected;
@@ -57,6 +57,7 @@ private:
 
   void reset_position();
   void undo();
+  void redo();
 
   void handle_event(const SDL_Event& e, bool& running);
   void handle_click(float x, float y);
@@ -87,6 +88,7 @@ private:
   void render_highlights(const BoardGeom& g);
   void render_pieces(const BoardGeom& g);
   void render_hud();
+  void render_state_window();
 };
 
 #endif

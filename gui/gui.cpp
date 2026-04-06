@@ -8,6 +8,12 @@
 
 using std::string;
 
+constexpr float kDebugTextScale = 1.15f;
+constexpr float kDebugPanelTop = 8.0f;
+constexpr float kDebugPanelHeight = 44.0f;
+constexpr float kDebugPanelGap = 8.0f;
+constexpr float kBottomHudReserve = 42.0f;
+
 static bool file_exists(const std::string& p) {
   std::error_code ec;
   return std::filesystem::exists(p, ec);
@@ -30,6 +36,45 @@ static std::string normalize_dir(const std::string& p) {
   if (p.empty()) return p;
   if (p.back() == '/') return p;
   return p + "/";
+}
+
+static std::string move_flags_to_string(MoveFlags flags) {
+  const unsigned int mask = static_cast<unsigned int>(flags);
+  std::vector<std::string> names;
+  if (mask & CAPTURE) names.push_back("CAPTURE");
+  if (mask & DOUBLE_PAWN_PUSH) names.push_back("DOUBLE_PAWN_PUSH");
+  if (mask & KING_CASTLE) names.push_back("KING_CASTLE");
+  if (mask & QUEEN_CASTLE) names.push_back("QUEEN_CASTLE");
+  if (mask & EN_PASSANT) names.push_back("EN_PASSANT");
+  if (mask & PROMOTION) names.push_back("PROMOTION");
+  if (names.empty()) return "none";
+
+  std::string out;
+  for (size_t i = 0; i < names.size(); i++) {
+    if (i > 0) out += ",";
+    out += names[i];
+  }
+  return out;
+}
+
+static std::string piece_to_string(PieceType p) {
+  if (p == EMPTY) return "-";
+  return std::string(1, charToPiece[p]);
+}
+
+static void render_debug_text_scaled(SDL_Renderer* renderer, float x, float y, const std::string& text, float scale) {
+  if (!renderer) return;
+  if (scale <= 1.0f) {
+    SDL_RenderDebugText(renderer, x, y, text.c_str());
+    return;
+  }
+
+  float prevX = 1.0f;
+  float prevY = 1.0f;
+  SDL_GetRenderScale(renderer, &prevX, &prevY);
+  SDL_SetRenderScale(renderer, scale, scale);
+  SDL_RenderDebugText(renderer, x / scale, y / scale, text.c_str());
+  SDL_SetRenderScale(renderer, prevX, prevY);
 }
 
 GUI::GUI() {
@@ -140,6 +185,7 @@ void GUI::unload_resources() {
 
 void GUI::reset_position() {
   history.clear();
+  redoHistory.clear();
   selected.reset();
   legalTargets = 0;
   lastMove.reset();
@@ -150,8 +196,20 @@ void GUI::reset_position() {
 
 void GUI::undo() {
   if (!history.empty()) {
+    redoHistory.push_back(pos);
     pos = history.back();
     history.pop_back();
+  }
+  selected.reset();
+  legalTargets = 0;
+  lastMove.reset();
+}
+
+void GUI::redo() {
+  if (!redoHistory.empty()) {
+    history.push_back(pos);
+    pos = redoHistory.back();
+    redoHistory.pop_back();
   }
   selected.reset();
   legalTargets = 0;
@@ -171,15 +229,19 @@ void GUI::update_window_size() {
 
 GUI::BoardGeom GUI::board_geom() const {
   BoardGeom g;
-  const float pad = 24.0f;
-  const float minDim = (float) std::min(winW, winH);
-  float boardSize = minDim - 2.0f * pad;
+  const float sidePad = 24.0f;
+  const float topReserve = kDebugPanelTop + kDebugPanelHeight + kDebugPanelGap;
+  const float bottomReserve = kBottomHudReserve;
+  const float availW = std::max(8.0f, (float) winW - 2.0f * sidePad);
+  const float availH = std::max(8.0f, (float) winH - topReserve - bottomReserve);
+  float boardSize = std::min(availW, availH);
   boardSize = std::floor(boardSize / 8.0f) * 8.0f;
   boardSize = std::max(boardSize, 8.0f);
   g.tile = boardSize / 8.0f;
+  const float boardY = topReserve + std::max(0.0f, (availH - boardSize) * 0.5f);
   g.board = SDL_FRect{
     (winW - boardSize) * 0.5f,
-    (winH - boardSize) * 0.5f,
+    boardY,
     boardSize,
     boardSize,
   };
@@ -232,7 +294,7 @@ Bitboard GUI::moves_to_targets_mask(const std::vector<Move>& moves) const {
 
 void GUI::select_square(Square sq) {
   selected = sq;
-  const auto moves = movegen.generate_moves_at(sq, pos);
+  const auto moves = MoveGen::generate_moves_at(sq, pos);
   legalTargets = moves_to_targets_mask(moves);
 }
 
@@ -270,11 +332,16 @@ void GUI::handle_click(float x, float y) {
 
   // Otherwise attempt to play if it's a legal target.
   if (legalTargets & (1ULL << sq)) {
-    Move mv;
-    mv.from = from;
-    mv.to = sq;
+    Move mv{from, sq};
+    const auto legalMoves = MoveGen::generate_moves_at(from, pos);
+    auto it = std::find_if(legalMoves.begin(), legalMoves.end(), [sq](const Move& m) {
+      return m.to == sq;
+    });
+    if (it != legalMoves.end()) mv = *it;
+    mv.captured_piece = pos.piece_on(sq);
 
     history.push_back(pos);
+    redoHistory.clear();
     pos.do_move(mv);
     lastMove = mv;
 
@@ -346,11 +413,16 @@ void GUI::finish_drag(float x, float y) {
 
   const Square to = *dropOpt;
   if (to != dragFrom && (legalTargets & (1ULL << to))) {
-    Move mv;
-    mv.from = dragFrom;
-    mv.to = to;
+    Move mv{dragFrom, to};
+    const auto legalMoves = MoveGen::generate_moves_at(dragFrom, pos);
+    auto it = std::find_if(legalMoves.begin(), legalMoves.end(), [to](const Move& m) {
+      return m.to == to;
+    });
+    if (it != legalMoves.end()) mv = *it;
+    mv.captured_piece = pos.piece_on(to);
 
     history.push_back(pos);
+    redoHistory.clear();
     pos.do_move(mv);
     lastMove = mv;
 
@@ -406,9 +478,12 @@ void GUI::handle_event(const SDL_Event& e, bool& running) {
         } else {
           running = false;
         }
-      } else if (e.key.scancode == SDL_SCANCODE_U) {
+      } else if (e.key.scancode == SDL_SCANCODE_LEFT) {
         cancel_drag();
         undo();
+      } else if (e.key.scancode == SDL_SCANCODE_RIGHT) {
+        cancel_drag();
+        redo();
       } else if (e.key.scancode == SDL_SCANCODE_R) {
         cancel_drag();
         reset_position();
@@ -521,11 +596,82 @@ void GUI::render_pieces(const BoardGeom& g) {
 
 void GUI::render_hud() {
   SDL_SetRenderDrawColor(renderer, 20, 20, 20, 230);
-  SDL_RenderDebugTextFormat(renderer, 12.0f, 12.0f, "to move: %s   [LMB] select/move  [RMB] clear  [U] undo  [R] reset  [Esc] back/quit", pos.get_player() == WHITE ? "white" : "black");
+  const std::string toMove = (pos.get_player() == WHITE) ? "white" : "black";
+  const std::string hud = "to move: " + toMove + "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
+  float y = (float) winH - 30.0f;
+  render_debug_text_scaled(renderer, 12.0f, y, hud, kDebugTextScale);
   if (!resRoot.empty()) {
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 200);
-    SDL_RenderDebugTextFormat(renderer, 12.0f, 24.0f, "res: %s", resRoot.c_str());
+    const std::string resLine = "res: " + resRoot;
+    render_debug_text_scaled(renderer, 12.0f, y - 14.0f, resLine, kDebugTextScale);
   }
+}
+
+void GUI::render_state_window() {
+  const BoardGeom g = board_geom();
+  const State& s = pos.get_state();
+  const bool inCheck = pos.is_check();
+
+  std::string castling;
+  if (s.castling_rights & CastlingRights::WK) castling += 'K';
+  if (s.castling_rights & CastlingRights::WQ) castling += 'Q';
+  if (s.castling_rights & CastlingRights::BK) castling += 'k';
+  if (s.castling_rights & CastlingRights::BQ) castling += 'q';
+  if (castling.empty()) castling = "-";
+
+  std::string ep = "-";
+  if (s.enPassant) {
+    int epSq = __builtin_ctzll(s.enPassant);
+    char file = (char) ('a' + (epSq % 8));
+    char rank = (char) ('1' + (epSq / 8));
+    ep = std::string() + file + rank;
+  }
+
+  const float panelPad = std::max(6.0f, g.tile * 0.10f);
+  const float panelW = std::max(120.0f, g.board.w - panelPad * 2.0f);
+  const float panelH = kDebugPanelHeight;
+  const float panelY = kDebugPanelTop;
+  const SDL_FRect panel{
+    g.board.x + panelPad,
+    panelY,
+    panelW,
+    panelH,
+  };
+
+  SDL_SetRenderDrawColor(renderer, 12, 12, 14, 215);
+  SDL_RenderFillRect(renderer, &panel);
+
+  SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+  SDL_RenderRect(renderer, &panel);
+
+  const float x = panel.x + 8.0f;
+  float y = panel.y + 6.0f;
+  const float lh = 13.0f;
+
+  SDL_SetRenderDrawColor(renderer, 230, 230, 230, 255);
+  const std::string stateLine =
+      std::string("state  white=") + (s.white ? "true" : "false") +
+      "  check=" + (inCheck ? std::string("true") : std::string("false")) +
+      "  castling=" + castling +
+      "  ep=" + ep +
+      "  rule50=" + std::to_string(s.rule50) +
+      "  full=" + std::to_string(s.fullMoves);
+  render_debug_text_scaled(renderer, x, y, stateLine, kDebugTextScale);
+  y += lh;
+
+  if (!lastMove) {
+    render_debug_text_scaled(renderer, x, y, "last_move  none", kDebugTextScale);
+    return;
+  }
+
+  const std::string moveLine =
+      "last_move  from=" + format(lastMove->from) +
+      "  to=" + format(lastMove->to) +
+      "  move=" + format(*lastMove) +
+      "  flags=" + move_flags_to_string(lastMove->flags) +
+      "  captured=" + piece_to_string(lastMove->captured_piece) +
+      "  promo=" + piece_to_string(lastMove->promotion);
+  render_debug_text_scaled(renderer, x, y, moveLine, kDebugTextScale);
 }
 
 void GUI::render() {
@@ -539,6 +685,7 @@ void GUI::render() {
   render_highlights(g);
   render_pieces(g);
   render_hud();
+  render_state_window();
 
   SDL_RenderPresent(renderer);
 }
