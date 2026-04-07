@@ -1,7 +1,5 @@
 
 .vscode/
 bin/
-src/.ccls
-src/.ccls-cache/
-.ccls
-.ccls-cache/
+build*/
+compile_commands.json
