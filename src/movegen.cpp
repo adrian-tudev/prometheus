@@ -1,5 +1,8 @@
 #include "movegen.h"
 
+#include "bitboard.h"
+#include "utils.h"
+
 using namespace Bitboards;
 
 namespace MoveGen {

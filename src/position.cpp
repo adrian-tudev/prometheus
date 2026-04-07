@@ -1,6 +1,8 @@
 #include <cassert>
+#include "bitboard.h"
 #include "position.h"
 #include "movegen.h"
+#include "utils.h"
 
 using namespace Bitboards;
 

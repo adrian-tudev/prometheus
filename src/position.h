@@ -1,14 +1,10 @@
 #ifndef POSITION_H
 #define POSITION_H
 
-#include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <string>
 
-#include "bitboard.h"
 #include "types.h"
-#include "utils.h"
 
 struct State {
   bool white = 1;

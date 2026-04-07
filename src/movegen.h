@@ -1,13 +1,10 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 
-#include <cstdint>
 #include <vector>
 
-#include "bitboard.h"
 #include "position.h"
 #include "types.h"
-#include "utils.h"
 
 using std::vector;
 

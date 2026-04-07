@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "bitboard.h"
 
 UI::UI() {
   printf("\033[32mprometheus v.%s\033[0m\n", PROMETHEUS_VERSION);
