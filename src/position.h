@@ -31,6 +31,7 @@ public:
   void print_board() const;
   void print_state() const;
   bool is_check() const;
+  bool is_in_check(Color player) const;
 
   inline PieceType piece_on(Square sq) const {
     return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);

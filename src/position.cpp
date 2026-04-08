@@ -288,6 +288,14 @@ Color Position::get_player() const {
 }
 
 bool Position::is_check() const {
-  return MoveGen::is_in_check(*this, get_player());
+  return is_in_check(get_player());
+}
+
+bool Position::is_in_check(Color player) const {
+  Color enemy = player == WHITE ? BLACK : WHITE;
+  Bitboard king = player == WHITE ? get_bitboard_of(W_KING) : get_bitboard_of(B_KING);
+
+  Bitboard enemyAttacks = MoveGen::attack_mask(*this, enemy);
+  return (enemyAttacks & king) != 0;
 }
   

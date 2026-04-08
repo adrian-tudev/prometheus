@@ -7,13 +7,14 @@ using namespace Bitboards;
 
 namespace MoveGen {
 
+Bitboard attack_mask(const Position& pos, Color player);
+
 namespace {
 
 Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos);
 vector<Move> castling(const Position& pos, Bitboard enemyAttacks);
 vector<Move> bitboard_to_moves(Bitboard board, Square from);
 Bitboard pawn_attacks(Color color, Square sq);
-Bitboard attack_mask(const Position& pos, Color player);
 
 } // namespace
 
@@ -31,13 +32,6 @@ vector<Move> generate_moves(const Position& pos) {
   }
 
   return moves;
-}
-
-bool is_in_check(const Position& pos, Color player) {
-  Color enemy = player == WHITE ? BLACK : WHITE;
-  Bitboard king = player == WHITE ? pos.get_bitboard_of(W_KING) : pos.get_bitboard_of(B_KING);
-  Bitboard enemyAttacks = attack_mask(pos, enemy);
-  return (king & enemyAttacks) != 0;
 }
 
 vector<Move> generate_moves_at(Square sq, const Position& pos) {
@@ -101,7 +95,7 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
 
     Position next = pos;
     next.do_move(move, false);
-    if (is_in_check(next, enemy)) {
+    if (next.is_in_check(enemy)) {
       move.flags = static_cast<MoveFlags>(move.flags | CHECK);
     }
 
@@ -161,8 +155,7 @@ Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
   return legal_squares;
 }
 
-/* returns bitboard of legal squares the king can move to when castling
- * 0 if not available
+/* returns legal castling squares for the king
  *
  * requirements for castling:
  * - not in check
@@ -238,6 +231,8 @@ Bitboard pawn_attacks(Color color, Square sq) {
   return attacks;
 }
 
+} // namespace
+
 // returns bitboard of all squares attacked by the given player
 Bitboard attack_mask(const Position& pos, Color player) {
   Bitboard attackSquares = 0;
@@ -265,7 +260,5 @@ Bitboard attack_mask(const Position& pos, Color player) {
 
   return attackSquares;
 }
-
-} // namespace
 
 } // namespace MoveGen
