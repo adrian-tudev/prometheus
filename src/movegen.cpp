@@ -36,21 +36,23 @@ vector<Move> generate_moves(const Position& pos) {
 
 vector<Move> generate_moves_at(Square sq, const Position& pos) {
   PieceType piece = pos.piece_on(sq);
-  if (piece == PieceType::EMPTY) return std::vector<Move>();
-  Color player = piece_is_white(piece) ? WHITE : BLACK;
+  if (piece == PieceType::EMPTY) 
+    return std::vector<Move>();
+
+  Color player = get_color(piece);
   Color enemy = static_cast<Color>(!player);
-  Bitboard enPassantSquare = pos.get_state().enPassant;
+  State state = pos.get_state();
   // legal squares for the piece on sq
   Bitboard legal_squares = pseudo_legal_moves(piece, sq, pos);
 
   // attacks for pawns (different from movement)
   if (piece == W_PAWN || piece == B_PAWN) {
     Bitboard attacks = pawn_attacks(get_color(piece), sq);
-    Bitboard capturable = pos.all_pieces(piece_is_white(piece) ? BLACK : WHITE);
+    Bitboard capturable = pos.all_pieces((Color)!get_color(piece));
     legal_squares |= capturable & attacks;
 
     // En passant is only available if this pawn attacks the en-passant target square.
-    legal_squares |= enPassantSquare & attacks;
+    legal_squares |= state.enPassant & attacks;
   }
 
   // king stuff
@@ -70,7 +72,7 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
 
   // can't eat own pieces
   // important: do this after checking for checks to disable the king from capturing a "defended" piece
-  Bitboard occupied = piece_is_white(piece) ? pos.all_pieces(WHITE) : pos.all_pieces(BLACK);
+  Bitboard occupied = pos.all_pieces(player);
   legal_squares &= ~occupied;
 
   // Bitboard to Moves
@@ -84,7 +86,7 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
     }
 
     if ((piece == W_PAWN || piece == B_PAWN) &&
-        (enPassantSquare & (1ULL << move.to))) {
+        (state.enPassant & (1ULL << move.to))) {
       move.flags = static_cast<MoveFlags>(move.flags | EN_PASSANT | CAPTURE);
     }
 
@@ -99,7 +101,7 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
       move.flags = static_cast<MoveFlags>(move.flags | CHECK);
     }
 
-    // TODO: promotions/en-passant flags
+    // TODO: promotions
   }
 
   moves.insert(moves.end(), castling_moves.begin(), castling_moves.end());
