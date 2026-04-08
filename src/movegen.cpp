@@ -166,8 +166,6 @@ Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
   }
 
   if (piece == W_PAWN) {
-    // white pawns can't move to 8th rank
-    legal_squares &= 0x00FFFFFFFFFFFFFFULL;
     // can't move forward if square is occupied
     Bitboard occupied = allWhite | allBlack;
     legal_squares &= ~occupied;
@@ -176,8 +174,6 @@ Bitboard pseudo_legal_moves(PieceType piece, Square sq, const Position& pos) {
       legal_squares &= ~(1ULL << (sq + 16));
     }
   } else if (piece == B_PAWN) {
-    // black pawns can't move to 1st rank
-    legal_squares &= 0xFFFFFFFFFFFFFF00ULL;
     // can't move forward if square is occupied
     Bitboard occupied = allWhite | allBlack;
     legal_squares &= ~occupied;
