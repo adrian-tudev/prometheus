@@ -99,7 +99,6 @@ void Position::update_state(const Move& move, PieceType movedPiece) {
   // change player
   state.white = !state.white;
 
-
   // update 50-move rule counter
   if (pc == W_PAWN || pc == B_PAWN || move.captured_piece != PieceType::EMPTY) {
     state.rule50 = 0;

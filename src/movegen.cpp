@@ -59,9 +59,6 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
   vector<Move> castling_moves;
   if (piece == W_KING || piece == B_KING) {
     Bitboard enemyAttack = attack_mask(pos, enemy);
-    if (pos.get_bitboard_of(piece) & enemyAttack) {
-      // TODO: in check reset all legal moves and investigate further
-    }
 
     // prevent the king from walking into enemy attacks
     legal_squares &= ~enemyAttack;
@@ -105,6 +102,17 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
   }
 
   moves.insert(moves.end(), castling_moves.begin(), castling_moves.end());
+
+  // remove moves that put the player in check
+  std::vector<Move> in_check_moves;
+  for (const Move move : moves) {
+    Position next = pos;
+    next.do_move(move, false);
+    if (!next.is_check()) {
+      in_check_moves.push_back(move);
+    }
+  }
+  moves = in_check_moves;
 
   return moves;
 }
