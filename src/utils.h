@@ -16,7 +16,7 @@ const string files = "abcdefgh";
 const string ranks = "12345678";
 
 constexpr int32_t MAX_EVAL = 1e5;
-const string STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+const string STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // formats a move to algebraic notation
 string format(Move move);

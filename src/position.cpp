@@ -268,29 +268,107 @@ Bitboard Position::all_pieces(Color color) const {
 }
 
 void Position::set(const std::string& FEN) {
+  // Reset board and state before parsing.
+  for (int r = 0; r < 8; r++) {
+    for (int f = 0; f < 8; f++) {
+      board[r][f] = EMPTY;
+    }
+  }
+  for (int i = 0; i < pieceTypes; i++) {
+    piece_bitboard[i] = 0;
+  }
+  state = State{};
+
+  // Support both full FEN and board-only FEN.
+  std::string boardPart;
+  std::string sidePart;
+  std::string castlingPart;
+  std::string epPart;
+  std::string rule50Part;
+  std::string fullMovesPart;
+
+  size_t p1 = FEN.find(' ');
+  if (p1 == std::string::npos) {
+    boardPart = FEN;
+  } else {
+    boardPart = FEN.substr(0, p1);
+
+    size_t p2 = FEN.find(' ', p1 + 1);
+    if (p2 == std::string::npos) p2 = FEN.size();
+    sidePart = FEN.substr(p1 + 1, p2 - (p1 + 1));
+
+    if (p2 < FEN.size()) {
+      size_t p3 = FEN.find(' ', p2 + 1);
+      if (p3 == std::string::npos) p3 = FEN.size();
+      castlingPart = FEN.substr(p2 + 1, p3 - (p2 + 1));
+
+      if (p3 < FEN.size()) {
+        size_t p4 = FEN.find(' ', p3 + 1);
+        if (p4 == std::string::npos) p4 = FEN.size();
+        epPart = FEN.substr(p3 + 1, p4 - (p3 + 1));
+
+        if (p4 < FEN.size()) {
+          size_t p5 = FEN.find(' ', p4 + 1);
+          if (p5 == std::string::npos) p5 = FEN.size();
+          rule50Part = FEN.substr(p4 + 1, p5 - (p4 + 1));
+          if (p5 < FEN.size()) {
+            fullMovesPart = FEN.substr(p5 + 1);
+          }
+        }
+      }
+    }
+  }
+
   int rank = 7;
   int file = 0;
-  for (char c : FEN) {
+  for (char c : boardPart) {
     if (isalpha(c)) {
-      // piece
       auto it = std::find(charToPiece.begin(), charToPiece.end(), c);
       assert(it != charToPiece.end());
       PieceType pc = (PieceType) std::distance(charToPiece.begin(), it);
-      board[rank][file] = pc;
-      file++;
+      assert(rank >= 0 && rank < 8 && file >= 0 && file < 8);
+      board[rank][file++] = pc;
     } else if (isdigit(c)) {
-      // empty squares
-      for (int i = 0; i < c - '0'; i++) {
+      int cnt = c - '0';
+      for (int i = 0; i < cnt; i++) {
+        assert(rank >= 0 && rank < 8 && file >= 0 && file < 8);
         board[rank][file++] = PieceType::EMPTY;
       }
-    } else {
-      // new rank '/'
+    } else if (c == '/') {
+      assert(file == 8);
       file = 0;
       rank--;
     }
   }
-  
-  // Initialize bitboards for pieces
+
+  // Parse side to move.
+  if (!sidePart.empty()) {
+    state.white = (sidePart == "w");
+  }
+
+  // Parse castling rights.
+  if (!castlingPart.empty()) {
+    state.castling_rights = 0;
+    if (castlingPart.find('K') != std::string::npos) state.castling_rights |= WK;
+    if (castlingPart.find('Q') != std::string::npos) state.castling_rights |= WQ;
+    if (castlingPart.find('k') != std::string::npos) state.castling_rights |= BK;
+    if (castlingPart.find('q') != std::string::npos) state.castling_rights |= BQ;
+  }
+
+  // Parse en passant target square.
+  if (!epPart.empty() && epPart != "-" && epPart.size() == 2) {
+    char f = epPart[0];
+    char r = epPart[1];
+    if (f >= 'a' && f <= 'h' && r >= '1' && r <= '8') {
+      Square sq = (Square) ((f - 'a') + (r - '1') * 8);
+      state.enPassant = (1ULL << sq);
+    }
+  }
+
+  if (!rule50Part.empty()) state.rule50 = std::stoi(rule50Part);
+  if (!fullMovesPart.empty()) state.fullMoves = std::stoi(fullMovesPart);
+
+  // Initialize bitboards for pieces.
   for (int type = 0; type < pieceTypes; type++) {
     set_bitboard((PieceType) type);
   }
