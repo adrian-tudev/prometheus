@@ -18,11 +18,18 @@ struct State {
 
 class Position {
 public:
+  struct UndoInfo {
+    State prev_state;
+    Move move;
+    PieceType moved_piece = EMPTY;
+    Square captured_square = 0;
+  };
+
   Position() = default;
 
   void set(const std::string& FEN);
-  void do_move(Move move, bool updateState = true);
-  void undo_move(const Move move);
+  UndoInfo do_move(Move move, bool updateState = true);
+  void undo_move(const UndoInfo& undo);
 
   // return position of all pieces of given color
   Bitboard all_pieces(Color color) const;
