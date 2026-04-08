@@ -30,8 +30,13 @@ public:
   std::string fen() const;
   void print_board() const;
   void print_state() const;
+
+  // returns true if the current player is in check
   bool is_check() const;
   bool is_in_check(Color player) const;
+
+  // returns true if the current player is checkmated
+  bool is_check_mate() const;
 
   inline PieceType piece_on(Square sq) const {
     return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);

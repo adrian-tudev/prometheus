@@ -6,10 +6,10 @@ beat trust-engine: https://github.com/modig5/trust-engine
 ## current
 -------------
 - update the State struct correctly
+- promotion
 
 ## features
 -------------
-- handle check
 - parse complete FEN string
 - serialize precomputed blocker table for faster startups
 
@@ -21,6 +21,8 @@ beat trust-engine: https://github.com/modig5/trust-engine
 - BUG: when castling squares are attacked and then blocked it sometimes doesn't work :(
 
 ## archive
+- checkmate
+- handle check
 - en passant
 - move flags for Move struct
 - move the rook after castling in do_move()

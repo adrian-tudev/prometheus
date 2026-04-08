@@ -297,4 +297,9 @@ bool Position::is_in_check(Color player) const {
   Bitboard enemyAttacks = MoveGen::attack_mask(*this, enemy);
   return (enemyAttacks & king) != 0;
 }
-  
+
+bool Position::is_check_mate() const {
+  std::vector<Move> moves = MoveGen::generate_moves(*this);
+  return moves.empty();
+}
+

@@ -607,7 +607,9 @@ void GUI::render_pieces(const BoardGeom& g) {
 void GUI::render_hud() {
   SDL_SetRenderDrawColor(renderer, 20, 20, 20, 230);
   const std::string toMove = (pos.get_player() == WHITE) ? "white" : "black";
-  const std::string hud = "to move: " + toMove + "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
+  const bool isCheckmate = pos.is_check_mate();
+  const std::string status = isCheckmate ? "   [CHECKMATE]" : "";
+  const std::string hud = "to move: " + toMove + status + "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
   float y = (float) winH - 30.0f;
   render_debug_text_scaled(renderer, 12.0f, y, hud, kDebugTextScale);
   if (!resRoot.empty()) {
@@ -621,6 +623,7 @@ void GUI::render_state_window() {
   const BoardGeom g = board_geom();
   const State& s = pos.get_state();
   const bool inCheck = pos.is_check();
+  const bool inCheckmate = pos.is_check_mate();
 
   std::string castling;
   if (s.castling_rights & CastlingRights::WK) castling += 'K';
@@ -662,6 +665,7 @@ void GUI::render_state_window() {
   const std::string stateLine =
       std::string("state  white=") + (s.white ? "true" : "false") +
       "  check=" + (inCheck ? std::string("true") : std::string("false")) +
+      "  checkmate=" + (inCheckmate ? std::string("true") : std::string("false")) +
       "  castling=" + castling +
       "  ep=" + ep +
       "  rule50=" + std::to_string(s.rule50) +
