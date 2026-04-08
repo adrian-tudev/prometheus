@@ -34,6 +34,7 @@ private:
   std::optional<Square> selected;
   Bitboard legalTargets = 0;
   std::optional<Move> lastMove;
+  std::vector<Move> pendingPromotionMoves;
 
   // Drag-and-drop state for moving pieces.
   bool dragArmed = false;
@@ -80,13 +81,18 @@ private:
 
   void select_square(Square sq);
   bool is_own_piece(Square sq) const;
+  bool try_play_move(Square from, Square to);
+  void commit_move(Move mv);
+  bool handle_promotion_click(float x, float y);
 
   Bitboard moves_to_targets_mask(const std::vector<Move>& moves) const;
+  std::vector<SDL_FRect> promotion_option_rects(const BoardGeom& g) const;
 
   void render();
   void render_board(const BoardGeom& g);
   void render_highlights(const BoardGeom& g);
   void render_pieces(const BoardGeom& g);
+  void render_promotion_picker(const BoardGeom& g);
   void render_hud();
   void render_state_window();
 };

@@ -29,7 +29,6 @@ public:
   Color get_player() const;
   std::string fen() const;
   void print_board() const;
-  void print_state() const;
 
   // returns true if the current player is in check
   bool is_check() const;

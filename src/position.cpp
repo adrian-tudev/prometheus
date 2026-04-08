@@ -73,12 +73,17 @@ void Position::move_piece(Move& move) {
     }
   }
 
+  PieceType placedPiece = pc;
+  if (move.flags & PROMOTION) {
+    placedPiece = move.promotion;
+  }
+
   // Set piece at destination square bitboard
-  piece_bitboard[pc] = set_bit(piece_bitboard[pc], to_idx);
+  piece_bitboard[placedPiece] = set_bit(piece_bitboard[placedPiece], to_idx);
 
   // Update board array
   board[from_r][from_c] = PieceType::EMPTY;
-  board[to_r][to_c] = pc;
+  board[to_r][to_c] = placedPiece;
 }
 
 void Position::update_state(const Move& move, PieceType movedPiece) {
@@ -256,32 +261,6 @@ void Position::print_board() const {
   std::cout << std::endl;
 }
 
-void Position::print_state() const {
-  std::cout << "State:\n";
-  std::cout << "  player: " << (state.white ? "white" : "black") << "\n";
-  std::cout << "  in_check: " << (is_check() ? "true" : "false") << "\n";
-
-  std::string castling = "";
-  if (state.castling_rights & CastlingRights::WK) castling += 'K';
-  if (state.castling_rights & CastlingRights::WQ) castling += 'Q';
-  if (state.castling_rights & CastlingRights::BK) castling += 'k';
-  if (state.castling_rights & CastlingRights::BQ) castling += 'q';
-  if (castling.empty()) castling = "-";
-  std::cout << "  castling_rights: " << castling << "\n";
-
-  if (state.enPassant) {
-    int ep_square = __builtin_ctzll(state.enPassant);
-    char file = 'a' + (ep_square % 8);
-    char rank = '1' + (ep_square / 8);
-    std::cout << "  en_passant: " << file << rank << "\n";
-  } else {
-    std::cout << "  en_passant: -\n";
-  }
-
-  std::cout << "  rule50: " << state.rule50 << "\n";
-  std::cout << "  fullMoves: " << state.fullMoves << "\n";
-}
-
 Color Position::get_player() const {
   return state.white ? Color::WHITE : Color::BLACK;
 }
@@ -302,4 +281,3 @@ bool Position::is_check_mate() const {
   std::vector<Move> moves = MoveGen::generate_moves(*this);
   return moves.empty();
 }
-

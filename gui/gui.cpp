@@ -186,6 +186,7 @@ void GUI::unload_resources() {
 void GUI::reset_position() {
   history.clear();
   redoHistory.clear();
+  pendingPromotionMoves.clear();
   selected.reset();
   legalTargets = 0;
   lastMove.reset();
@@ -201,6 +202,7 @@ void GUI::undo() {
     history.pop_back();
   }
   selected.reset();
+  pendingPromotionMoves.clear();
   legalTargets = 0;
   lastMove.reset();
 }
@@ -212,6 +214,7 @@ void GUI::redo() {
     redoHistory.pop_back();
   }
   selected.reset();
+  pendingPromotionMoves.clear();
   legalTargets = 0;
   lastMove.reset();
 }
@@ -298,7 +301,98 @@ void GUI::select_square(Square sq) {
   legalTargets = moves_to_targets_mask(moves);
 }
 
+void GUI::commit_move(Move mv) {
+  if (mv.flags & EN_PASSANT) {
+    PieceType movingPiece = pos.piece_on(mv.from);
+    mv.captured_piece = piece_is_white(movingPiece) ? B_PAWN : W_PAWN;
+  } else {
+    mv.captured_piece = pos.piece_on(mv.to);
+  }
+
+  history.push_back(pos);
+  redoHistory.clear();
+  pos.do_move(mv);
+  lastMove = mv;
+
+  pendingPromotionMoves.clear();
+  selected.reset();
+  legalTargets = 0;
+}
+
+bool GUI::try_play_move(Square from, Square to) {
+  Move mv{from, to};
+  const auto legalMoves = MoveGen::generate_moves_at(from, pos);
+  std::vector<Move> matching;
+  for (const Move& m : legalMoves) {
+    if (m.to == to) matching.push_back(m);
+  }
+  if (matching.empty()) return false;
+
+  if (matching.size() > 1) {
+    bool hasPromotion = false;
+    for (const Move& m : matching) {
+      if (m.flags & PROMOTION) {
+        hasPromotion = true;
+        break;
+      }
+    }
+    if (hasPromotion) {
+      pendingPromotionMoves = matching;
+      return true;
+    }
+  }
+
+  mv = matching.front();
+  commit_move(mv);
+  return true;
+}
+
+std::vector<SDL_FRect> GUI::promotion_option_rects(const BoardGeom& g) const {
+  std::vector<SDL_FRect> rects;
+  if (pendingPromotionMoves.empty()) return rects;
+
+  const float box = std::max(40.0f, g.tile * 0.9f);
+  const float gap = std::max(6.0f, g.tile * 0.08f);
+  const float totalW = box * 4.0f + gap * 3.0f;
+  const float x0 = g.board.x + (g.board.w - totalW) * 0.5f;
+  const float y0 = g.board.y + (g.board.h - box) * 0.5f;
+  for (int i = 0; i < 4; i++) {
+    rects.push_back(SDL_FRect{x0 + i * (box + gap), y0, box, box});
+  }
+  return rects;
+}
+
+bool GUI::handle_promotion_click(float x, float y) {
+  if (pendingPromotionMoves.empty()) return false;
+  const BoardGeom g = board_geom();
+  const auto rects = promotion_option_rects(g);
+  if (rects.size() != 4) return false;
+
+  PieceType promoOrder[4] = {
+    pos.get_player() == WHITE ? W_QUEEN : B_QUEEN,
+    pos.get_player() == WHITE ? W_ROOK : B_ROOK,
+    pos.get_player() == WHITE ? W_BISHOP : B_BISHOP,
+    pos.get_player() == WHITE ? W_KNIGHT : B_KNIGHT,
+  };
+
+  for (int i = 0; i < 4; i++) {
+    if (!point_in_rect(x, y, rects[i])) continue;
+    for (const Move& m : pendingPromotionMoves) {
+      if (m.promotion == promoOrder[i]) {
+        commit_move(m);
+        return true;
+      }
+    }
+    return true;
+  }
+
+  pendingPromotionMoves.clear();
+  return true;
+}
+
 void GUI::handle_click(float x, float y) {
+  if (handle_promotion_click(x, y)) return;
+
   const BoardGeom g = board_geom();
   auto sqOpt = square_from_mouse(x, y, g);
   if (!sqOpt) {
@@ -332,26 +426,10 @@ void GUI::handle_click(float x, float y) {
 
   // Otherwise attempt to play if it's a legal target.
   if (legalTargets & (1ULL << sq)) {
-    Move mv{from, sq};
-    const auto legalMoves = MoveGen::generate_moves_at(from, pos);
-    auto it = std::find_if(legalMoves.begin(), legalMoves.end(), [sq](const Move& m) {
-      return m.to == sq;
-    });
-    if (it != legalMoves.end()) mv = *it;
-    if (mv.flags & EN_PASSANT) {
-      PieceType movingPiece = pos.piece_on(from);
-      mv.captured_piece = piece_is_white(movingPiece) ? B_PAWN : W_PAWN;
-    } else {
-      mv.captured_piece = pos.piece_on(sq);
+    if (!try_play_move(from, sq)) {
+      selected.reset();
+      legalTargets = 0;
     }
-
-    history.push_back(pos);
-    redoHistory.clear();
-    pos.do_move(mv);
-    lastMove = mv;
-
-    selected.reset();
-    legalTargets = 0;
   } else {
     // Click on a non-legal square (including empty squares) clears selection.
     selected.reset();
@@ -395,6 +473,11 @@ void GUI::cancel_drag() {
 }
 
 void GUI::finish_drag(float x, float y) {
+  if (handle_promotion_click(x, y)) {
+    cancel_drag();
+    return;
+  }
+
   if (!dragArmed) return;
 
   // Treat mouse-up without a real drag as a click on the original square.
@@ -418,26 +501,10 @@ void GUI::finish_drag(float x, float y) {
 
   const Square to = *dropOpt;
   if (to != dragFrom && (legalTargets & (1ULL << to))) {
-    Move mv{dragFrom, to};
-    const auto legalMoves = MoveGen::generate_moves_at(dragFrom, pos);
-    auto it = std::find_if(legalMoves.begin(), legalMoves.end(), [to](const Move& m) {
-      return m.to == to;
-    });
-    if (it != legalMoves.end()) mv = *it;
-    if (mv.flags & EN_PASSANT) {
-      PieceType movingPiece = pos.piece_on(dragFrom);
-      mv.captured_piece = piece_is_white(movingPiece) ? B_PAWN : W_PAWN;
-    } else {
-      mv.captured_piece = pos.piece_on(to);
+    if (!try_play_move(dragFrom, to)) {
+      selected.reset();
+      legalTargets = 0;
     }
-
-    history.push_back(pos);
-    redoHistory.clear();
-    pos.do_move(mv);
-    lastMove = mv;
-
-    selected.reset();
-    legalTargets = 0;
   } else if (to != dragFrom && is_own_piece(to)) {
     select_square(to);
   }
@@ -466,6 +533,7 @@ void GUI::handle_event(const SDL_Event& e, bool& running) {
         }
       } else if (e.button.button == SDL_BUTTON_RIGHT) {
         cancel_drag();
+        pendingPromotionMoves.clear();
         selected.reset();
         legalTargets = 0;
       }
@@ -482,6 +550,10 @@ void GUI::handle_event(const SDL_Event& e, bool& running) {
       if (e.key.repeat) break;
       if (e.key.scancode == SDL_SCANCODE_ESCAPE) {
         cancel_drag();
+        if (!pendingPromotionMoves.empty()) {
+          pendingPromotionMoves.clear();
+          break;
+        }
         if (selected) {
           selected.reset();
           legalTargets = 0;
@@ -609,7 +681,8 @@ void GUI::render_hud() {
   const std::string toMove = (pos.get_player() == WHITE) ? "white" : "black";
   const bool isCheckmate = pos.is_check_mate();
   const std::string status = isCheckmate ? "   [CHECKMATE]" : "";
-  const std::string hud = "to move: " + toMove + status + "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
+  const std::string promoHint = pendingPromotionMoves.empty() ? "" : "   [PROMOTE: choose Q/R/B/N]";
+  const std::string hud = "to move: " + toMove + status + promoHint + "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
   float y = (float) winH - 30.0f;
   render_debug_text_scaled(renderer, 12.0f, y, hud, kDebugTextScale);
   if (!resRoot.empty()) {
@@ -688,6 +761,36 @@ void GUI::render_state_window() {
   render_debug_text_scaled(renderer, x, y, moveLine, kDebugTextScale);
 }
 
+void GUI::render_promotion_picker(const BoardGeom& g) {
+  if (pendingPromotionMoves.empty()) return;
+
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 110);
+  SDL_FRect scr{0.0f, 0.0f, (float) winW, (float) winH};
+  SDL_RenderFillRect(renderer, &scr);
+
+  const auto rects = promotion_option_rects(g);
+  PieceType promoOrder[4] = {
+    pos.get_player() == WHITE ? W_QUEEN : B_QUEEN,
+    pos.get_player() == WHITE ? W_ROOK : B_ROOK,
+    pos.get_player() == WHITE ? W_BISHOP : B_BISHOP,
+    pos.get_player() == WHITE ? W_KNIGHT : B_KNIGHT,
+  };
+
+  for (int i = 0; i < 4 && i < (int) rects.size(); i++) {
+    SDL_SetRenderDrawColor(renderer, 235, 235, 235, 250);
+    SDL_RenderFillRect(renderer, &rects[i]);
+    SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+    SDL_RenderRect(renderer, &rects[i]);
+
+    SDL_Texture* tex = pieceTex[promoOrder[i]];
+    if (!tex) continue;
+
+    const float pad = std::max(2.0f, rects[i].w * 0.10f);
+    SDL_FRect dst{rects[i].x + pad, rects[i].y + pad, rects[i].w - 2 * pad, rects[i].h - 2 * pad};
+    SDL_RenderTexture(renderer, tex, nullptr, &dst);
+  }
+}
+
 void GUI::render() {
   update_window_size();
   const BoardGeom g = board_geom();
@@ -698,6 +801,7 @@ void GUI::render() {
   render_board(g);
   render_highlights(g);
   render_pieces(g);
+  render_promotion_picker(g);
   render_hud();
   render_state_window();
 

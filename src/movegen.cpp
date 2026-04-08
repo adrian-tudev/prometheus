@@ -2,6 +2,7 @@
 
 #include "bitboard.h"
 #include "utils.h"
+#include <cerrno>
 
 using namespace Bitboards;
 
@@ -73,11 +74,12 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
   legal_squares &= ~occupied;
 
   // Bitboard to Moves
-  vector<Move> moves = bitboard_to_moves(legal_squares, sq);
+  vector<Move> rawMoves = bitboard_to_moves(legal_squares, sq);
+  vector<Move> moves;
 
   // add flags for generated moves
   Bitboard enemyPieces = pos.all_pieces(enemy);
-  for (Move& move : moves) {
+  for (Move& move : rawMoves) {
     if (enemyPieces & (1ULL << move.to)) {
       move.flags = static_cast<MoveFlags>(move.flags | CAPTURE);
     }
@@ -92,18 +94,41 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
       move.flags = static_cast<MoveFlags>(move.flags | DOUBLE_PAWN_PUSH);
     }
 
+    const bool isPromotionMove =
+      (piece == W_PAWN && move.to / 8 == 7) ||
+      (piece == B_PAWN && move.to / 8 == 0);
+
+    if (isPromotionMove) {
+      PieceType promoPieces[4] = {
+        player == WHITE ? W_QUEEN : B_QUEEN,
+        player == WHITE ? W_ROOK : B_ROOK,
+        player == WHITE ? W_BISHOP : B_BISHOP,
+        player == WHITE ? W_KNIGHT : B_KNIGHT,
+      };
+
+      for (PieceType promo : promoPieces) {
+        Move promoMove = move;
+        promoMove.promotion = promo;
+        promoMove.flags = static_cast<MoveFlags>(promoMove.flags | PROMOTION);
+        moves.push_back(promoMove);
+      }
+      continue;
+    }
+
+    moves.push_back(move);
+  }
+
+  for (Move& move : moves) {
     Position next = pos;
     next.do_move(move, false);
     if (next.is_in_check(enemy)) {
       move.flags = static_cast<MoveFlags>(move.flags | CHECK);
     }
-
-    // TODO: promotions
   }
 
   moves.insert(moves.end(), castling_moves.begin(), castling_moves.end());
 
-  // remove moves that put the player in check
+  // remove moves that put the player in self-check
   std::vector<Move> in_check_moves;
   for (const Move move : moves) {
     Position next = pos;
