@@ -41,6 +41,13 @@ add_executable(perft
 )
 target_include_directories(perft PRIVATE ${SRC_DIR})
 
+# Keep perft fast regardless of the global build type.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+  target_compile_options(perft PRIVATE -O3 -DNDEBUG)
+elseif(MSVC)
+  target_compile_options(perft PRIVATE /O2 /DNDEBUG)
+endif()
+
 option(PROMETHEUS_BUILD_GUI "Build SDL GUI target" OFF)
 
 if(PROMETHEUS_BUILD_GUI)
