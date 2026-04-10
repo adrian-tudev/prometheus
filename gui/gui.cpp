@@ -190,6 +190,7 @@ void GUI::reset_position() {
   selected.reset();
   legalTargets = 0;
   lastMove.reset();
+  engineMovePending = false;
 
   pos = Position();
   pos.set(STARTING_FEN);
@@ -201,6 +202,7 @@ void GUI::undo() {
     pos = history.back();
     history.pop_back();
   }
+  engineMovePending = false;
   selected.reset();
   pendingPromotionMoves.clear();
   legalTargets = 0;
@@ -213,6 +215,7 @@ void GUI::redo() {
     pos = redoHistory.back();
     redoHistory.pop_back();
   }
+  engineMovePending = false;
   selected.reset();
   pendingPromotionMoves.clear();
   legalTargets = 0;
@@ -292,14 +295,19 @@ bool GUI::is_human_turn() const {
   return pos.get_player() == humanColor;
 }
 
-void GUI::maybe_engine_move() {
-  if (is_human_turn()) return;
+void GUI::play_engine_turn() {
+  if (!engineMovePending) return;
+  if (is_human_turn()) {
+    engineMovePending = false;
+    return;
+  }
   if (!pendingPromotionMoves.empty()) return;
 
   if (MoveGen::generate_moves(pos).empty()) return;
 
   engine.set_position(pos);
   commit_move(engine.ponder());
+  engineMovePending = false;
 }
 
 Bitboard GUI::moves_to_targets_mask(const std::vector<Move>& moves) const {
@@ -332,6 +340,10 @@ void GUI::commit_move(Move mv) {
   pendingPromotionMoves.clear();
   selected.reset();
   legalTargets = 0;
+
+  if (!is_human_turn()) {
+    engineMovePending = true;
+  }
 }
 
 bool GUI::try_play_move(Square from, Square to) {
@@ -843,8 +855,8 @@ int GUI::run() {
     while (SDL_PollEvent(&e)) {
       handle_event(e, running);
     }
-    maybe_engine_move();
     render();
+    play_engine_turn();
     SDL_Delay(1);
   }
 

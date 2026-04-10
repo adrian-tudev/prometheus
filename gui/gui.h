@@ -34,6 +34,7 @@ private:
   Engine engine;
 
   Color humanColor = WHITE;
+  bool engineMovePending = false;
 
   std::optional<Square> selected;
   Bitboard legalTargets = 0;
@@ -89,7 +90,7 @@ private:
   void commit_move(Move mv);
   bool handle_promotion_click(float x, float y);
   bool is_human_turn() const;
-  void maybe_engine_move();
+  void play_engine_turn();
 
   Bitboard moves_to_targets_mask(const std::vector<Move>& moves) const;
   std::vector<SDL_FRect> promotion_option_rects(const BoardGeom& g) const;
