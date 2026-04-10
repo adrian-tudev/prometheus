@@ -1,9 +1,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include "movegen.h"
 #include "position.h"
-#include "utils.h"
 
 #define PROMETHEUS_VERSION "0.1"
 
@@ -13,12 +11,18 @@ public:
   ~Engine();
 
   Score eval();
-  Move search(uint8_t depth);
-  void set_position(const Position& pos) { position = pos; }
+  Move ponder();
+  void set_position(const Position &pos);
+
+  static const Score INF = 1e9;
+  static const unsigned int SEARCH_DEPTH = 4;
 
 private:
   Position position;
 
+  Score negamax(Position pos, uint8_t depth);
+  Score eval(const Position& pos) const;
+  Score material_score(const Position& pos) const;
   Score material_score();
 };
 
