@@ -1,5 +1,7 @@
 #include "ui.h"
 #include "bitboard.h"
+#include "movegen.h"
+#include "utils.h"
 
 UI::UI() {
   printf("\033[32mprometheus v.%s\033[0m\n", PROMETHEUS_VERSION);
@@ -43,14 +45,41 @@ bool UI::is_move_legal(Move move) {
 
 void UI::loop() {
   positions.back().print_board();
+  const Color humanColor = WHITE;
+
   while (true) {
-    engine.set_position(positions.back());
+    const Position current = positions.back();
+    const auto legalMoves = MoveGen::generate_moves(current);
+    if (legalMoves.empty()) {
+      if (current.is_check()) {
+        printf("checkmate!\n");
+      } else {
+        printf("stalemate!\n");
+      }
+      break;
+    }
+
+    engine.set_position(current);
+
+    if (current.get_player() != humanColor) {
+      Move engineMove = engine.ponder();
+      Position next = current;
+      next.do_move(engineMove);
+      positions.push_back(next);
+      printf("engine: %s\n", format(engineMove).c_str());
+      next.print_board();
+      continue;
+    }
+
     std::cout << "> ";
     string line = read_input();
     if (line == "quit" || line == "q") break;
     if (line == "undo" || line == "u") {
       if (positions.size() > 1) {
-        positions.pop_back();
+        const size_t pliesToUndo = std::min((size_t) 2, positions.size() - 1);
+        for (size_t i = 0; i < pliesToUndo; i++) {
+          positions.pop_back();
+        }
         positions.back().print_board();
       } else {
         printf("no moves to undo!\n");
@@ -83,8 +112,6 @@ void UI::loop() {
       pos.do_move(*move);
       pos.print_board();
       positions.push_back(pos);
-
-      Score score = engine.eval();
     } else {
       std::cout << "Not valid move!" << std::endl;
       continue;

@@ -2,6 +2,7 @@
 #define UI_H
 
 #include "engine.h"
+#include <vector>
 
 class UI {
 public:

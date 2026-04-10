@@ -281,10 +281,25 @@ SDL_FRect GUI::rect_for_square(Square sq, const BoardGeom& g) const {
 }
 
 bool GUI::is_own_piece(Square sq) const {
+  if (!is_human_turn()) return false;
   PieceType p = pos.piece_on(sq);
   if (p == EMPTY) return false;
   Color toMove = pos.get_player();
   return (toMove == WHITE) ? piece_is_white(p) : !piece_is_white(p);
+}
+
+bool GUI::is_human_turn() const {
+  return pos.get_player() == humanColor;
+}
+
+void GUI::maybe_engine_move() {
+  if (is_human_turn()) return;
+  if (!pendingPromotionMoves.empty()) return;
+
+  if (MoveGen::generate_moves(pos).empty()) return;
+
+  engine.set_position(pos);
+  commit_move(engine.ponder());
 }
 
 Bitboard GUI::moves_to_targets_mask(const std::vector<Move>& moves) const {
@@ -679,10 +694,17 @@ void GUI::render_pieces(const BoardGeom& g) {
 void GUI::render_hud() {
   SDL_SetRenderDrawColor(renderer, 20, 20, 20, 230);
   const std::string toMove = (pos.get_player() == WHITE) ? "white" : "black";
+  const std::string humanSide = (humanColor == WHITE) ? "white" : "black";
+  const std::string turnOwner = is_human_turn() ? "you" : "engine";
   const bool isCheckmate = pos.is_check_mate();
   const std::string status = isCheckmate ? "   [CHECKMATE]" : "";
   const std::string promoHint = pendingPromotionMoves.empty() ? "" : "   [PROMOTE: choose Q/R/B/N]";
-  const std::string hud = "to move: " + toMove + status + promoHint + "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
+  const std::string hud =
+      std::string("mode: vs-engine") +
+      "  you: " + humanSide +
+      "  to move: " + toMove + " (" + turnOwner + ")" +
+      status + promoHint +
+      "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
   float y = (float) winH - 30.0f;
   render_debug_text_scaled(renderer, 12.0f, y, hud, kDebugTextScale);
   if (!resRoot.empty()) {
@@ -821,6 +843,7 @@ int GUI::run() {
     while (SDL_PollEvent(&e)) {
       handle_event(e, running);
     }
+    maybe_engine_move();
     render();
     SDL_Delay(1);
   }

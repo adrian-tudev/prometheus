@@ -9,6 +9,7 @@
 #include <SDL3/SDL.h>
 
 #include "bitboard.h"
+#include "engine.h"
 #include "movegen.h"
 #include "position.h"
 #include "types.h"
@@ -30,6 +31,9 @@ private:
   std::vector<Position> history;
   std::vector<Position> redoHistory;
   Position pos;
+  Engine engine;
+
+  Color humanColor = WHITE;
 
   std::optional<Square> selected;
   Bitboard legalTargets = 0;
@@ -84,6 +88,8 @@ private:
   bool try_play_move(Square from, Square to);
   void commit_move(Move mv);
   bool handle_promotion_click(float x, float y);
+  bool is_human_turn() const;
+  void maybe_engine_move();
 
   Bitboard moves_to_targets_mask(const std::vector<Move>& moves) const;
   std::vector<SDL_FRect> promotion_option_rects(const BoardGeom& g) const;

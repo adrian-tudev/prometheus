@@ -57,6 +57,7 @@ if(PROMETHEUS_BUILD_GUI)
 
   set(GUI_CORE_SOURCES
     ${SRC_DIR}/bitboard.cpp
+    ${SRC_DIR}/engine.cpp
     ${SRC_DIR}/movegen.cpp
     ${SRC_DIR}/position.cpp
     ${SRC_DIR}/utils.cpp
