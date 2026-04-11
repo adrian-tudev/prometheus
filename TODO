@@ -5,10 +5,13 @@ beat trust-engine: https://github.com/modig5/trust-engine
 
 ## current
 -------------
-- perft test
+- zobrist hashing
+- transposition table
+- score map for each PieceType
 
 ## features
 -------------
+- multithread gui let prometheus do some pondering
 - parse complete FEN string
 - serialize precomputed blocker table for faster startups
 
@@ -20,6 +23,8 @@ beat trust-engine: https://github.com/modig5/trust-engine
 - BUG: when castling squares are attacked and then blocked it sometimes doesn't work :(
 
 ## archive
+- α-β pruning
+- perft test
 - update the State struct correctly
 - promotion
 - checkmate

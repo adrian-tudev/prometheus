@@ -87,7 +87,7 @@ void UI::loop() {
       continue;
     }
     if (line == "eval" || line == "e") {
-      Score score = engine.eval();
+      Score score = engine.eval(current);
       printf("eval: %d\n", score);
       continue;
     }
