@@ -13,14 +13,19 @@ public:
   Score eval(const Position& pos) const;
   Move ponder();
   void set_position(const Position &pos);
+  void set_search_depth(uint8_t depth);
+  uint8_t get_search_depth() const;
 
   static const Score INF = 1e9;
-  static const unsigned int SEARCH_DEPTH = 5;
+  static const uint8_t DEFAULT_SEARCH_DEPTH = 5;
+  static const uint8_t MIN_SEARCH_DEPTH = 1;
+  static const uint8_t MAX_SEARCH_DEPTH = 10;
 
 private:
   Position position;
+  uint8_t searchDepth = DEFAULT_SEARCH_DEPTH;
 
-  Score negamax(Position pos, uint8_t depth, Score alpha, Score beta);
+  Score negamax(Position& pos, uint8_t depth, Score alpha, Score beta);
   Score material_score(const Position& pos) const;
 };
 
