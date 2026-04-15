@@ -8,7 +8,7 @@
 
 struct State {
   bool white = 1;
-  unsigned int castling_rights : 4 = 0b1111;
+  uint8_t castling_rights : 4 = CastlingRights::ALL;
   // 50 "halfmoves" 
   int rule50 = 0; 
   int fullMoves = 1;
@@ -45,7 +45,7 @@ public:
   bool is_check_mate() const;
 
   inline PieceType piece_on(Square sq) const {
-    return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
+    return (sq < 64) ? board[sq] : PieceType::EMPTY;
   }
 
   inline int count_pieces(PieceType type) const { 
@@ -71,11 +71,11 @@ public:
 private:
   void move_piece(Move& move);
   void update_state(const Move& move, PieceType movedPiece);
+  void set_bitboard(PieceType type);
 
   State state;
   Bitboard piece_bitboard[pieceTypes];
-  PieceType board[8][8];
-  void set_bitboard(PieceType type);
+  PieceType board[64];
 };
 
 #endif

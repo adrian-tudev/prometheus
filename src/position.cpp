@@ -6,24 +6,9 @@
 
 using namespace Bitboards;
 
-namespace {
-
-struct SquareCoord {
-  Square rank;
-  Square file;
-};
-
-inline SquareCoord to_coord(Square idx) {
-  return SquareCoord{static_cast<Square>(idx / 8), static_cast<Square>(idx % 8)};
-}
-
-} // namespace
-
-// TODO: update Move flags accordingly
 Position::UndoInfo Position::do_move(Move move, bool updateState) {
   uint8_t from_idx = move.from;  // Already a square index (0-63)
-  SquareCoord from = to_coord(from_idx);
-  PieceType movedPiece = board[from.rank][from.file];
+  PieceType movedPiece = board[from_idx];
 
   Position::UndoInfo undo;
   undo.prev_state = state;
@@ -65,78 +50,67 @@ void Position::undo_move(const Position::UndoInfo& undo) {
   Square from_idx = move.from;
   Square to_idx = move.to;
 
-  SquareCoord from = to_coord(from_idx);
-  SquareCoord to = to_coord(to_idx);
-
-  PieceType moved_now = board[to.rank][to.file];
+  PieceType moved_now = board[to_idx];
 
   piece_bitboard[moved_now] = clear_bit(piece_bitboard[moved_now], to_idx);
-  board[to.rank][to.file] = EMPTY;
+  board[to_idx] = EMPTY;
 
   PieceType restored_mover = undo.moved_piece;
   piece_bitboard[restored_mover] = set_bit(piece_bitboard[restored_mover], from_idx);
-  board[from.rank][from.file] = restored_mover;
+  board[from_idx] = restored_mover;
 
   if (move.flags & MoveFlags::KING_CASTLE) {
     Square rook_from = piece_is_white(restored_mover) ? 5 : 61;
     Square rook_to = piece_is_white(restored_mover) ? 7 : 63;
-    SquareCoord rookFrom = to_coord(rook_from);
-    SquareCoord rookTo = to_coord(rook_to);
-    PieceType rook = board[rookFrom.rank][rookFrom.file];
+    PieceType rook = board[rook_from];
 
     piece_bitboard[rook] = clear_bit(piece_bitboard[rook], rook_from);
     piece_bitboard[rook] = set_bit(piece_bitboard[rook], rook_to);
-    board[rookFrom.rank][rookFrom.file] = EMPTY;
-    board[rookTo.rank][rookTo.file] = rook;
+    board[rook_from] = EMPTY;
+    board[rook_to] = rook;
   } else if (move.flags & MoveFlags::QUEEN_CASTLE) {
     Square rook_from = piece_is_white(restored_mover) ? 3 : 59;
     Square rook_to = piece_is_white(restored_mover) ? 0 : 56;
-    SquareCoord rookFrom = to_coord(rook_from);
-    SquareCoord rookTo = to_coord(rook_to);
-    PieceType rook = board[rookFrom.rank][rookFrom.file];
+    PieceType rook = board[rook_from];
 
     piece_bitboard[rook] = clear_bit(piece_bitboard[rook], rook_from);
     piece_bitboard[rook] = set_bit(piece_bitboard[rook], rook_to);
-    board[rookFrom.rank][rookFrom.file] = EMPTY;
-    board[rookTo.rank][rookTo.file] = rook;
+    board[rook_from] = EMPTY;
+    board[rook_to] = rook;
   }
 
   if (move.captured_piece != EMPTY) {
     Square cap_idx = undo.captured_square;
-    SquareCoord cap = to_coord(cap_idx);
-    board[cap.rank][cap.file] = move.captured_piece;
+    board[cap_idx] = move.captured_piece;
     piece_bitboard[move.captured_piece] = set_bit(piece_bitboard[move.captured_piece], cap_idx);
   }
 }
 
 void Position::move_piece(Move& move) {
   Square from_idx = move.from;  // Already a square index (0-63)
-  SquareCoord from = to_coord(from_idx);
-  PieceType pc = board[from.rank][from.file];
+  PieceType pc = board[from_idx];
 
   // Clear piece from source square bitboard
   piece_bitboard[pc] = clear_bit(piece_bitboard[pc], from_idx);
 
   Square to_idx = move.to;  // Already a square index (0-63)
-  SquareCoord to = to_coord(to_idx);
 
   // Remove captured piece from its bitboard (if any), including en-passant captures.
   move.captured_piece = PieceType::EMPTY;
   if ((move.flags & MoveFlags::EN_PASSANT) && (pc == W_PAWN || pc == B_PAWN)) {
     Square captured_idx = (pc == W_PAWN) ? static_cast<Square>(to_idx - 8)
                                          : static_cast<Square>(to_idx + 8);
-    SquareCoord captured = to_coord(captured_idx);
     PieceType expected_captured_pawn = (pc == W_PAWN) ? B_PAWN : W_PAWN;
-    PieceType captured_piece = board[captured.rank][captured.file];
+    PieceType captured_piece = board[captured_idx];
 
     // En passant always captures an enemy pawn.
     move.captured_piece = expected_captured_pawn;
     if (captured_piece != PieceType::EMPTY) {
       piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], captured_idx);
-      board[captured.rank][captured.file] = PieceType::EMPTY;
+      board[captured_idx] = PieceType::EMPTY;
     }
   } else {
-    PieceType captured_piece = board[to.rank][to.file];
+    PieceType captured_piece = board[to_idx];
     move.captured_piece = captured_piece;
     if (captured_piece != PieceType::EMPTY) {
       piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], to_idx);
@@ -152,8 +126,8 @@ void Position::move_piece(Move& move) {
   piece_bitboard[placedPiece] = set_bit(piece_bitboard[placedPiece], to_idx);
 
   // Update board array
-  board[from.rank][from.file] = PieceType::EMPTY;
-  board[to.rank][to.file] = placedPiece;
+  board[from_idx] = PieceType::EMPTY;
+  board[to_idx] = placedPiece;
 }
 
 void Position::update_state(const Move& move, PieceType movedPiece) {
@@ -210,14 +184,15 @@ std::string Position::fen() const {
   for (int i = 7; i >= 0; i--) {
     int empty = 0;
     for (int j = 0; j < 8; j++) {
-      if (board[i][j] == PieceType::EMPTY) {
+      const Square sq = static_cast<Square>(i * 8 + j);
+      if (board[sq] == PieceType::EMPTY) {
         empty++;
       } else {
         if (empty > 0) {
           fen += std::to_string(empty);
           empty = 0;
         }
-        fen += charToPiece[board[i][j]];
+        fen += charToPiece[board[sq]];
       }
     }
     if (empty > 0) {
@@ -269,10 +244,8 @@ Bitboard Position::all_pieces(Color color) const {
 
 void Position::set(const std::string& FEN) {
   // Reset board and state before parsing.
-  for (int r = 0; r < 8; r++) {
-    for (int f = 0; f < 8; f++) {
-      board[r][f] = EMPTY;
-    }
+  for (int sq = 0; sq < 64; sq++) {
+    board[sq] = EMPTY;
   }
   for (int i = 0; i < pieceTypes; i++) {
     piece_bitboard[i] = 0;
@@ -327,12 +300,12 @@ void Position::set(const std::string& FEN) {
       assert(it != charToPiece.end());
       PieceType pc = (PieceType) std::distance(charToPiece.begin(), it);
       assert(rank >= 0 && rank < 8 && file >= 0 && file < 8);
-      board[rank][file++] = pc;
+      board[rank * 8 + file++] = pc;
     } else if (isdigit(c)) {
       int cnt = c - '0';
       for (int i = 0; i < cnt; i++) {
         assert(rank >= 0 && rank < 8 && file >= 0 && file < 8);
-        board[rank][file++] = PieceType::EMPTY;
+        board[rank * 8 + file++] = PieceType::EMPTY;
       }
     } else if (c == '/') {
       assert(file == 8);
@@ -378,13 +351,9 @@ void Position::set_bitboard(PieceType type) {
   assert(type != PieceType::EMPTY);
   Bitboard bitboard = 0;
 
-  uint8_t cnt = 0;
-  for (int i = 0; i < 8; i++) {
-    for (int j = 0; j < 8; j++) {
-      if (board[i][j] == type) {
-        bitboard |= (1ull << cnt);
-      }
-      cnt++;
+  for (Square sq = 0; sq < 64; sq++) {
+    if (board[sq] == type) {
+      bitboard |= (1ULL << sq);
     }
   }
   piece_bitboard[type] = bitboard;
@@ -395,7 +364,7 @@ void Position::print_board() const {
   for (int i = 7; i >= 0; i--) {
     printf("|");
     for (int j = 0; j < 8; j++) {
-      PieceType piece = board[i][j];
+      PieceType piece = board[i * 8 + j];
       if (piece == PieceType::EMPTY) {
         std::cout << "   |";
       } else if (piece >= 0 && piece < charToPiece.size()) {

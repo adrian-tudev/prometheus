@@ -5,8 +5,9 @@
 #include <cstdint>
 
 using Bitboard = uint64_t;
-using Square = uint8_t;
-using Score = int32_t;
+using Key      = uint64_t;
+using Score    = int32_t;
+using Square   = uint8_t;
 
 // OBS! EMPTY square not counted
 constexpr uint8_t pieceTypes = 12;
@@ -23,7 +24,9 @@ enum CastlingRights {
   WK = 1 << 0,
   WQ = 1 << 1,
   BK = 1 << 2,
-  BQ = 1 << 3
+  BQ = 1 << 3,
+
+  ALL = WK | WQ | BK | BQ,
 };
 
 inline bool piece_is_white(PieceType type) {
