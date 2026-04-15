@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
@@ -15,6 +15,20 @@ foreach(CONFIG Debug Release RelWithDebInfo MinSizeRel)
   string(TOUPPER ${CONFIG} CONFIG_UPPER)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_SOURCE_DIR}/bin)
 endforeach()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+  add_compile_options(
+    $<$<CONFIG:Release>:-O3>
+    $<$<CONFIG:RelWithDebInfo>:-O3>
+    $<$<CONFIG:MinSizeRel>:-Os>
+  )
+elseif(MSVC)
+  add_compile_options(
+    $<$<CONFIG:Release>:/O2>
+    $<$<CONFIG:RelWithDebInfo>:/O2>
+    $<$<CONFIG:MinSizeRel>:/O1>
+  )
+endif()
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TEST_DIR ${CMAKE_SOURCE_DIR}/tests)
