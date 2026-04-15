@@ -26,6 +26,7 @@ string format(Square sq);
 optional<Move> parse_move(const std::string& str);
 
 // initialize zobrist keys
+// shoutout https://rosettacode.org/wiki/Pseudo-random_numbers/Splitmix64
 uint64_t splitmix64(uint64_t& seed);
 
 string format(Square sq);
