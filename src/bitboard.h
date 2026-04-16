@@ -31,7 +31,7 @@ namespace Bitboards {
   };
 
   // global precomputed bitboards
-  extern Bitboard movementMasks[pieceTypes][64];
+  extern Bitboard movementMasks[PIECE_TYPES][64];
   extern unordered_map<AttackKey, Bitboard, AttackKeyHash> bishopAttack;
   extern unordered_map<AttackKey, Bitboard, AttackKeyHash> rookAttack;
 

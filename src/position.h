@@ -2,6 +2,7 @@
 #define POSITION_H
 
 #include <cassert>
+#include <cstdint>
 #include <string>
 
 #include "types.h"
@@ -23,6 +24,7 @@ public:
     Move move;
     PieceType moved_piece = EMPTY;
     Square captured_square = 0;
+    Key prev_key = 0;
   };
 
   Position() = default;
@@ -68,14 +70,28 @@ public:
     return state;
   }
 
+  inline Key hash() const {
+    return key;
+  }
+
 private:
   void move_piece(Move& move);
   void update_state(const Move& move, PieceType movedPiece);
   void set_bitboard(PieceType type);
+  void init_zobrist();
+  Key compute_hash() const;
+  int ep_file_from_mask(Bitboard epMask) const;
+
+  static bool zobrist_initialized;
+  static Key zobrist_piece[PIECE_TYPES][64];
+  static Key zobrist_castling[1 << 4];
+  static Key zobrist_ep[8];
+  static Key zobrist_side;
 
   State state;
-  Bitboard piece_bitboard[pieceTypes];
+  Bitboard piece_bitboard[PIECE_TYPES];
   PieceType board[64];
+  Key key = 0;
 };
 
 #endif

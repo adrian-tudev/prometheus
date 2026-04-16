@@ -6,6 +6,65 @@
 
 using namespace Bitboards;
 
+bool Position::zobrist_initialized = false;
+Key Position::zobrist_piece[PIECE_TYPES][64];
+Key Position::zobrist_castling[1 << 4];
+Key Position::zobrist_ep[8];
+Key Position::zobrist_side;
+
+void Position::init_zobrist() {
+  if (zobrist_initialized) return;
+
+  uint64_t seed = 0x9e3779b97f4a7c15ULL;
+
+  for (int piece = 0; piece < PIECE_TYPES; piece++) {
+    for (int sq = 0; sq < 64; sq++) {
+      zobrist_piece[piece][sq] = splitmix64(seed);
+    }
+  }
+
+  for (int cr = 0; cr < (1 << 4); cr++) {
+    zobrist_castling[cr] = splitmix64(seed);
+  }
+
+  for (int file = 0; file < 8; file++) {
+    zobrist_ep[file] = splitmix64(seed);
+  }
+
+  zobrist_side = splitmix64(seed);
+  zobrist_initialized = true;
+}
+
+int Position::ep_file_from_mask(Bitboard epMask) const {
+  if (!epMask) return -1;
+  Square sq = __builtin_ctzll(epMask);
+  return sq % 8;
+}
+
+Key Position::compute_hash() const {
+  Key h = 0;
+
+  for (Square sq = 0; sq < 64; sq++) {
+    PieceType piece = board[sq];
+    if (piece != EMPTY) {
+      h ^= zobrist_piece[piece][sq];
+    }
+  }
+
+  h ^= zobrist_castling[state.castling_rights & 0xF];
+
+  const int ep_file = ep_file_from_mask(state.enPassant);
+  if (ep_file >= 0) {
+    h ^= zobrist_ep[ep_file];
+  }
+
+  if (!state.white) {
+    h ^= zobrist_side;
+  }
+
+  return h;
+}
+
 Position::UndoInfo Position::do_move(Move move, bool updateState) {
   uint8_t from_idx = move.from;  // Already a square index (0-63)
   PieceType movedPiece = board[from_idx];
@@ -15,6 +74,7 @@ Position::UndoInfo Position::do_move(Move move, bool updateState) {
   undo.move = move;
   undo.moved_piece = movedPiece;
   undo.captured_square = move.to;
+  undo.prev_key = key;
   if ((move.flags & MoveFlags::EN_PASSANT) && (movedPiece == W_PAWN || movedPiece == B_PAWN)) {
     undo.captured_square = (movedPiece == W_PAWN) ? static_cast<Square>(move.to - 8)
                                                   : static_cast<Square>(move.to + 8);
@@ -36,7 +96,18 @@ Position::UndoInfo Position::do_move(Move move, bool updateState) {
   }
 
   if (updateState) {
+    const uint8_t prev_castling = state.castling_rights;
+    const int prev_ep_file = ep_file_from_mask(state.enPassant);
+
     update_state(move, movedPiece);
+
+    key ^= zobrist_side;
+    key ^= zobrist_castling[prev_castling & 0xF];
+    key ^= zobrist_castling[state.castling_rights & 0xF];
+
+    if (prev_ep_file >= 0) key ^= zobrist_ep[prev_ep_file];
+    const int next_ep_file = ep_file_from_mask(state.enPassant);
+    if (next_ep_file >= 0) key ^= zobrist_ep[next_ep_file];
   }
 
   undo.move = move;
@@ -84,11 +155,15 @@ void Position::undo_move(const Position::UndoInfo& undo) {
     board[cap_idx] = move.captured_piece;
     piece_bitboard[move.captured_piece] = set_bit(piece_bitboard[move.captured_piece], cap_idx);
   }
+
+  key = undo.prev_key;
 }
 
 void Position::move_piece(Move& move) {
   Square from_idx = move.from;  // Already a square index (0-63)
   PieceType pc = board[from_idx];
+
+  key ^= zobrist_piece[pc][from_idx];
 
   // Clear piece from source square bitboard
   piece_bitboard[pc] = clear_bit(piece_bitboard[pc], from_idx);
@@ -106,6 +181,7 @@ void Position::move_piece(Move& move) {
     // En passant always captures an enemy pawn.
     move.captured_piece = expected_captured_pawn;
     if (captured_piece != PieceType::EMPTY) {
+      key ^= zobrist_piece[captured_piece][captured_idx];
       piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], captured_idx);
       board[captured_idx] = PieceType::EMPTY;
     }
@@ -113,6 +189,7 @@ void Position::move_piece(Move& move) {
     PieceType captured_piece = board[to_idx];
     move.captured_piece = captured_piece;
     if (captured_piece != PieceType::EMPTY) {
+      key ^= zobrist_piece[captured_piece][to_idx];
       piece_bitboard[captured_piece] = clear_bit(piece_bitboard[captured_piece], to_idx);
     }
   }
@@ -128,6 +205,8 @@ void Position::move_piece(Move& move) {
   // Update board array
   board[from_idx] = PieceType::EMPTY;
   board[to_idx] = placedPiece;
+
+  key ^= zobrist_piece[placedPiece][to_idx];
 }
 
 void Position::update_state(const Move& move, PieceType movedPiece) {
@@ -243,11 +322,13 @@ Bitboard Position::all_pieces(Color color) const {
 }
 
 void Position::set(const std::string& FEN) {
+  init_zobrist();
+
   // Reset board and state before parsing.
   for (int sq = 0; sq < 64; sq++) {
     board[sq] = EMPTY;
   }
-  for (int i = 0; i < pieceTypes; i++) {
+  for (int i = 0; i < PIECE_TYPES; i++) {
     piece_bitboard[i] = 0;
   }
   state = State{};
@@ -342,9 +423,11 @@ void Position::set(const std::string& FEN) {
   if (!fullMovesPart.empty()) state.fullMoves = std::stoi(fullMovesPart);
 
   // Initialize bitboards for pieces.
-  for (int type = 0; type < pieceTypes; type++) {
+  for (int type = 0; type < PIECE_TYPES; type++) {
     set_bitboard((PieceType) type);
   }
+
+  key = compute_hash();
 }
 
 void Position::set_bitboard(PieceType type) {

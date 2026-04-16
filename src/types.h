@@ -10,7 +10,7 @@ using Score    = int32_t;
 using Square   = uint8_t;
 
 // OBS! EMPTY square not counted
-constexpr uint8_t pieceTypes = 12;
+constexpr uint8_t PIECE_TYPES = 12;
 
 enum Color { BLACK, WHITE };
 
