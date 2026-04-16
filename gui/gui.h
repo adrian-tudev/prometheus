@@ -26,7 +26,7 @@ private:
   SDL_Window* window = nullptr;
   SDL_Renderer* renderer = nullptr;
 
-  std::array<SDL_Texture*, pieceTypes> pieceTex{};
+  std::array<SDL_Texture*, PIECE_TYPES> pieceTex{};
 
   std::vector<Position> history;
   std::vector<Position> redoHistory;

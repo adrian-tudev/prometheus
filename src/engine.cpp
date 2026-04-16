@@ -8,6 +8,22 @@ Engine::Engine() {
 
 void Engine::set_position(const Position &pos) { position = pos; }
 
+void Engine::set_search_depth(uint8_t depth) {
+  if (depth < MIN_SEARCH_DEPTH) {
+    searchDepth = MIN_SEARCH_DEPTH;
+    return;
+  }
+  if (depth > MAX_SEARCH_DEPTH) {
+    searchDepth = MAX_SEARCH_DEPTH;
+    return;
+  }
+  searchDepth = depth;
+}
+
+uint8_t Engine::get_search_depth() const {
+  return searchDepth;
+}
+
 Move Engine::ponder() {
   Move best_move;
   Score best_score = -INF;
@@ -24,7 +40,7 @@ Move Engine::ponder() {
     return aTactical > bTactical;
   });
 
-  const uint8_t next_depth = SEARCH_DEPTH > 0 ? SEARCH_DEPTH - 1 : 0;
+  const uint8_t next_depth = searchDepth > 0 ? searchDepth - 1 : 0;
 
   for (const Move& move : all_moves) {
     auto undo_info = position.do_move(move);
@@ -43,7 +59,7 @@ Move Engine::ponder() {
 }
 
 // Negated Minimax searches for the optimal score in the given position
-Score Engine::negamax(Position pos, uint8_t depth, Score alpha, Score beta) {
+Score Engine::negamax(Position& pos, uint8_t depth, Score alpha, Score beta) {
   if (depth == 0) return eval(pos);
 
   auto all_moves = MoveGen::generate_moves(pos);

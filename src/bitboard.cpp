@@ -3,7 +3,7 @@
 namespace Bitboards {
 
 // precomputed pseudo-legal bitboards for all pieces
-Bitboard movementMasks[pieceTypes][64];
+Bitboard movementMasks[PIECE_TYPES][64];
 unordered_map<AttackKey, Bitboard, AttackKeyHash> rookAttack;
 unordered_map<AttackKey, Bitboard, AttackKeyHash> bishopAttack;
 

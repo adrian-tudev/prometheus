@@ -62,6 +62,12 @@ static std::string piece_to_string(PieceType p) {
   return std::string(1, charToPiece[p]);
 }
 
+static uint8_t clamp_depth(int depth) {
+  if (depth < (int) Engine::MIN_SEARCH_DEPTH) return Engine::MIN_SEARCH_DEPTH;
+  if (depth > (int) Engine::MAX_SEARCH_DEPTH) return Engine::MAX_SEARCH_DEPTH;
+  return (uint8_t) depth;
+}
+
 static void render_debug_text_scaled(SDL_Renderer* renderer, float x, float y, const std::string& text, float scale) {
   if (!renderer) return;
   if (scale <= 1.0f) {
@@ -596,6 +602,17 @@ void GUI::handle_event(const SDL_Event& e, bool& running) {
       } else if (e.key.scancode == SDL_SCANCODE_R) {
         cancel_drag();
         reset_position();
+      } else if (e.key.scancode == SDL_SCANCODE_LEFTBRACKET || e.key.scancode == SDL_SCANCODE_DOWN) {
+        const uint8_t current = engine.get_search_depth();
+        engine.set_search_depth(clamp_depth((int) current - 1));
+      } else if (e.key.scancode == SDL_SCANCODE_RIGHTBRACKET || e.key.scancode == SDL_SCANCODE_UP) {
+        const uint8_t current = engine.get_search_depth();
+        engine.set_search_depth(clamp_depth((int) current + 1));
+      } else if (e.key.scancode >= SDL_SCANCODE_1 && e.key.scancode <= SDL_SCANCODE_9) {
+        const int digit = (int) e.key.scancode - (int) SDL_SCANCODE_1 + 1;
+        engine.set_search_depth(clamp_depth(digit));
+      } else if (e.key.scancode == SDL_SCANCODE_0) {
+        engine.set_search_depth(Engine::MAX_SEARCH_DEPTH);
       }
       break;
     default:
@@ -711,12 +728,14 @@ void GUI::render_hud() {
   const bool isCheckmate = pos.is_check_mate();
   const std::string status = isCheckmate ? "   [CHECKMATE]" : "";
   const std::string promoHint = pendingPromotionMoves.empty() ? "" : "   [PROMOTE: choose Q/R/B/N]";
+  const std::string depthInfo = "  depth: " + std::to_string(engine.get_search_depth());
   const std::string hud =
       std::string("mode: vs-engine") +
       "  you: " + humanSide +
+      depthInfo +
       "  to move: " + toMove + " (" + turnOwner + ")" +
       status + promoHint +
-      "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [Esc] back/quit";
+      "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [[/] or [up/down] depth  [1-9/0] set depth  [Esc] back/quit";
   float y = (float) winH - 30.0f;
   render_debug_text_scaled(renderer, 12.0f, y, hud, kDebugTextScale);
   if (!resRoot.empty()) {
@@ -771,6 +790,7 @@ void GUI::render_state_window() {
   SDL_SetRenderDrawColor(renderer, 230, 230, 230, 255);
   const std::string stateLine =
       std::string("state  white=") + (s.white ? "true" : "false") +
+      "  depth=" + std::to_string(engine.get_search_depth()) +
       "  check=" + (inCheck ? std::string("true") : std::string("false")) +
       "  checkmate=" + (inCheckmate ? std::string("true") : std::string("false")) +
       "  castling=" + castling +

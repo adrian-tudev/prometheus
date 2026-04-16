@@ -25,6 +25,10 @@ string format(Square sq);
 // parses a move in algebraic notation
 optional<Move> parse_move(const std::string& str);
 
+// initialize zobrist keys
+// shoutout https://rosettacode.org/wiki/Pseudo-random_numbers/Splitmix64
+uint64_t splitmix64(uint64_t& seed);
+
 string format(Square sq);
 bool is_sliding(PieceType piece);
 Color get_color(PieceType piece);

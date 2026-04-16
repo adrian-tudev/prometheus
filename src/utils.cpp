@@ -27,6 +27,13 @@ optional<Move> parse_move(const string& str) {
   return move;
 }
 
+uint64_t splitmix64(uint64_t& seed) {
+    uint64_t z = (seed += 0x9e3779b97f4a7c15ULL);
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+    return z ^ (z >> 31);
+}
+
 bool is_sliding(PieceType piece) {
   return piece == W_BISHOP || piece == B_BISHOP || piece == W_ROOK || piece == B_ROOK || piece == W_QUEEN || piece == B_QUEEN;
 }

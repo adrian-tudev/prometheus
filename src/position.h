@@ -2,13 +2,14 @@
 #define POSITION_H
 
 #include <cassert>
+#include <cstdint>
 #include <string>
 
 #include "types.h"
 
 struct State {
   bool white = 1;
-  unsigned int castling_rights : 4 = 0b1111;
+  uint8_t castling_rights : 4 = CastlingRights::ALL;
   // 50 "halfmoves" 
   int rule50 = 0; 
   int fullMoves = 1;
@@ -23,6 +24,7 @@ public:
     Move move;
     PieceType moved_piece = EMPTY;
     Square captured_square = 0;
+    Key prev_key = 0;
   };
 
   Position() = default;
@@ -45,7 +47,7 @@ public:
   bool is_check_mate() const;
 
   inline PieceType piece_on(Square sq) const {
-    return ((sq >= 0 && sq < 64) ? board[sq / 8][sq % 8] : PieceType::EMPTY);
+    return (sq < 64) ? board[sq] : PieceType::EMPTY;
   }
 
   inline int count_pieces(PieceType type) const { 
@@ -68,14 +70,28 @@ public:
     return state;
   }
 
+  inline Key hash() const {
+    return key;
+  }
+
 private:
   void move_piece(Move& move);
   void update_state(const Move& move, PieceType movedPiece);
+  void set_bitboard(PieceType type);
+  void init_zobrist();
+  Key compute_hash() const;
+  int hashable_ep_file() const;
+
+  static bool zobrist_initialized;
+  static Key zobrist_piece[PIECE_TYPES][64];
+  static Key zobrist_castling[1 << 4];
+  static Key zobrist_ep[8];
+  static Key zobrist_side;
 
   State state;
-  Bitboard piece_bitboard[pieceTypes];
-  PieceType board[8][8];
-  void set_bitboard(PieceType type);
+  Bitboard piece_bitboard[PIECE_TYPES];
+  PieceType board[64];
+  Key key = 0;
 };
 
 #endif
