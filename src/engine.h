@@ -4,6 +4,8 @@
 #include "position.h"
 #include "tt.h"
 
+#include <vector>
+
 #define PROMETHEUS_VERSION "0.1"
 
 class Engine {
@@ -26,9 +28,11 @@ private:
   Position position;
   uint8_t searchDepth = DEFAULT_SEARCH_DEPTH;
   TT tt{128};
+  std::vector<Key> searchKeyStack;
 
   Score negamax(Position& pos, uint8_t depth, Score alpha, Score beta);
   Score material_score(const Position& pos) const;
+  bool is_threefold(const Position& pos) const;
 };
 
 #endif

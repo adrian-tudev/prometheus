@@ -26,11 +26,9 @@ uint8_t Engine::get_search_depth() const {
 
 Move Engine::ponder() {
   tt.new_search();
+  searchKeyStack.clear();
+  searchKeyStack.push_back(position.hash());
 
-  Move best_move;
-  Score best_score = -INF;
-  Score alpha = -INF;
-  const Score beta = INF;
   auto all_moves = MoveGen::generate_moves(position);
 
   if (all_moves.empty()) return Move{};
@@ -42,19 +40,37 @@ Move Engine::ponder() {
     return aTactical > bTactical;
   });
 
-  const uint8_t next_depth = searchDepth > 0 ? searchDepth - 1 : 0;
+  Move best_move = all_moves.front();
+  Move pv_move = best_move;
 
-  for (const Move& move : all_moves) {
-    auto undo_info = position.do_move(move);
-    Score cur_score = -negamax(position, next_depth, -beta, -alpha);
-    position.undo_move(undo_info);
-
-    if (cur_score > best_score) {
-      best_move = move;
-      best_score = cur_score;
+  for (uint8_t depth = 1; depth <= searchDepth; depth++) {
+    auto pv_it = std::find(all_moves.begin(), all_moves.end(), pv_move);
+    if (pv_it != all_moves.end() && pv_it != all_moves.begin()) {
+      std::iter_swap(all_moves.begin(), pv_it);
     }
 
-    alpha = std::max(alpha, cur_score);
+    Score alpha = -INF;
+    const Score beta = INF;
+    Score iteration_best_score = -INF;
+    Move iteration_best_move = all_moves.front();
+
+    for (const Move& move : all_moves) {
+      auto undo_info = position.do_move(move);
+      searchKeyStack.push_back(position.hash());
+      Score cur_score = -negamax(position, static_cast<uint8_t>(depth - 1), -beta, -alpha);
+      searchKeyStack.pop_back();
+      position.undo_move(undo_info);
+
+      if (cur_score > iteration_best_score) {
+        iteration_best_move = move;
+        iteration_best_score = cur_score;
+      }
+
+      alpha = std::max(alpha, cur_score);
+    }
+
+    best_move = iteration_best_move;
+    pv_move = iteration_best_move;
   }
 
   return best_move;
@@ -62,6 +78,8 @@ Move Engine::ponder() {
 
 // Negated Minimax searches for the optimal score in the given position
 Score Engine::negamax(Position& pos, uint8_t depth, Score alpha, Score beta) {
+  if (is_threefold(pos)) return 0;
+
   const Score alpha_orig = alpha;
   const Score beta_orig = beta;
   const Key key = pos.hash();
@@ -105,7 +123,9 @@ Score Engine::negamax(Position& pos, uint8_t depth, Score alpha, Score beta) {
 
   for (const Move& move : all_moves) {
     auto undo_info = pos.do_move(move);
+    searchKeyStack.push_back(pos.hash());
     Score score = -negamax(pos, depth - 1, -beta, -alpha);
+    searchKeyStack.pop_back();
     pos.undo_move(undo_info);
 
     if (score > best) {
@@ -127,6 +147,26 @@ Score Engine::negamax(Position& pos, uint8_t depth, Score alpha, Score beta) {
   tt.store(key, best, depth, flag, pack_tt_move(best_move));
 
   return best;
+}
+
+bool Engine::is_threefold(const Position& pos) const {
+  if (searchKeyStack.empty()) return false;
+
+  const Key key = pos.hash();
+  int repetitions = 0;
+
+  const int last = static_cast<int>(searchKeyStack.size()) - 1;
+  const int maxBack = std::min<int>(static_cast<int>(pos.get_state().rule50), last);
+  const int minIdx = last - maxBack;
+
+  for (int i = last; i >= minIdx; i -= 2) {
+    if (searchKeyStack[i] == key) {
+      repetitions++;
+      if (repetitions >= 3) return true;
+    }
+  }
+
+  return false;
 }
 
 Score Engine::eval(const Position& pos) const {
