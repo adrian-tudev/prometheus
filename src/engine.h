@@ -2,6 +2,7 @@
 #define ENGINE_H
 
 #include "position.h"
+#include "tt.h"
 
 #define PROMETHEUS_VERSION "0.1"
 
@@ -24,6 +25,7 @@ public:
 private:
   Position position;
   uint8_t searchDepth = DEFAULT_SEARCH_DEPTH;
+  TT tt{128};
 
   Score negamax(Position& pos, uint8_t depth, Score alpha, Score beta);
   Score material_score(const Position& pos) const;

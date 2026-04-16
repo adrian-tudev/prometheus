@@ -118,24 +118,17 @@ vector<Move> generate_moves_at(Square sq, const Position& pos) {
     moves.push_back(move);
   }
 
-  for (Move& move : moves) {
-    Position next = pos;
-    next.do_move(move, false);
-    if (next.is_in_check(enemy)) {
-      move.flags = static_cast<MoveFlags>(move.flags | CHECK);
-    }
-  }
-
   moves.insert(moves.end(), castling_moves.begin(), castling_moves.end());
 
   // remove moves that put the player in self-check
   std::vector<Move> in_check_moves;
+  Position next = pos;
   for (const Move move : moves) {
-    Position next = pos;
-    next.do_move(move, false);
+    auto undo = next.do_move(move, false);
     if (!next.is_check()) {
       in_check_moves.push_back(move);
     }
+    next.undo_move(undo);
   }
   moves = in_check_moves;
 

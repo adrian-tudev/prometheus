@@ -1,6 +1,7 @@
 #include "gui.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 
@@ -197,6 +198,8 @@ void GUI::reset_position() {
   legalTargets = 0;
   lastMove.reset();
   engineMovePending = false;
+  hasEngineThinkTime = false;
+  lastEngineThinkMs = 0.0;
 
   pos = Position();
   pos.set(STARTING_FEN);
@@ -209,6 +212,8 @@ void GUI::undo() {
     history.pop_back();
   }
   engineMovePending = false;
+  hasEngineThinkTime = false;
+  lastEngineThinkMs = 0.0;
   selected.reset();
   pendingPromotionMoves.clear();
   legalTargets = 0;
@@ -222,6 +227,8 @@ void GUI::redo() {
     redoHistory.pop_back();
   }
   engineMovePending = false;
+  hasEngineThinkTime = false;
+  lastEngineThinkMs = 0.0;
   selected.reset();
   pendingPromotionMoves.clear();
   legalTargets = 0;
@@ -312,7 +319,14 @@ void GUI::play_engine_turn() {
   if (MoveGen::generate_moves(pos).empty()) return;
 
   engine.set_position(pos);
-  commit_move(engine.ponder());
+  const auto thinkStart = std::chrono::steady_clock::now();
+  Move engineMove = engine.ponder();
+  const auto thinkEnd = std::chrono::steady_clock::now();
+  const auto thinkUs = std::chrono::duration_cast<std::chrono::microseconds>(thinkEnd - thinkStart).count();
+  lastEngineThinkMs = thinkUs / 1000.0;
+  hasEngineThinkTime = true;
+
+  commit_move(engineMove);
   engineMovePending = false;
 }
 
@@ -729,10 +743,14 @@ void GUI::render_hud() {
   const std::string status = isCheckmate ? "   [CHECKMATE]" : "";
   const std::string promoHint = pendingPromotionMoves.empty() ? "" : "   [PROMOTE: choose Q/R/B/N]";
   const std::string depthInfo = "  depth: " + std::to_string(engine.get_search_depth());
+  const std::string thinkInfo = hasEngineThinkTime ?
+      ("  think: " + std::to_string(lastEngineThinkMs).substr(0, std::to_string(lastEngineThinkMs).find('.') + 2) + "ms") :
+      "  think: -";
   const std::string hud =
       std::string("mode: vs-engine") +
       "  you: " + humanSide +
       depthInfo +
+      thinkInfo +
       "  to move: " + toMove + " (" + turnOwner + ")" +
       status + promoHint +
       "   [LMB] select/move  [RMB] clear  [<-] undo  [->] redo  [R] reset  [[/] or [up/down] depth  [1-9/0] set depth  [Esc] back/quit";
@@ -791,6 +809,7 @@ void GUI::render_state_window() {
   const std::string stateLine =
       std::string("state  white=") + (s.white ? "true" : "false") +
       "  depth=" + std::to_string(engine.get_search_depth()) +
+      "  think_ms=" + (hasEngineThinkTime ? std::to_string(lastEngineThinkMs).substr(0, std::to_string(lastEngineThinkMs).find('.') + 2) : std::string("-")) +
       "  check=" + (inCheck ? std::string("true") : std::string("false")) +
       "  checkmate=" + (inCheckmate ? std::string("true") : std::string("false")) +
       "  castling=" + castling +

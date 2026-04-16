@@ -39,6 +39,7 @@ set(CORE_NO_MAIN_SOURCES
   ${SRC_DIR}/engine.cpp
   ${SRC_DIR}/movegen.cpp
   ${SRC_DIR}/position.cpp
+  ${SRC_DIR}/tt.cpp
   ${SRC_DIR}/ui.cpp
   ${SRC_DIR}/utils.cpp
 )
@@ -74,6 +75,7 @@ if(PROMETHEUS_BUILD_GUI)
     ${SRC_DIR}/engine.cpp
     ${SRC_DIR}/movegen.cpp
     ${SRC_DIR}/position.cpp
+    ${SRC_DIR}/tt.cpp
     ${SRC_DIR}/utils.cpp
   )
 
