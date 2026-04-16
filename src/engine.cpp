@@ -25,6 +25,8 @@ uint8_t Engine::get_search_depth() const {
 }
 
 Move Engine::ponder() {
+  tt.new_search();
+
   Move best_move;
   Score best_score = -INF;
   Score alpha = -INF;
@@ -60,6 +62,22 @@ Move Engine::ponder() {
 
 // Negated Minimax searches for the optimal score in the given position
 Score Engine::negamax(Position& pos, uint8_t depth, Score alpha, Score beta) {
+  const Score alpha_orig = alpha;
+  const Score beta_orig = beta;
+  const Key key = pos.hash();
+
+  TTMove ttMove = TT_MOVE_NONE;
+  const TTEntry* entry = tt.probe(key);
+  if (entry) {
+    ttMove = entry->move;
+    if (entry->depth >= depth) {
+      if (entry->flag == TT_EXACT) return entry->score;
+      if (entry->flag == TT_LOWER) alpha = std::max(alpha, entry->score);
+      if (entry->flag == TT_HIGHER) beta = std::min(beta, entry->score);
+      if (alpha >= beta) return entry->score;
+    }
+  }
+
   if (depth == 0) return eval(pos);
 
   auto all_moves = MoveGen::generate_moves(pos);
@@ -74,17 +92,39 @@ Score Engine::negamax(Position& pos, uint8_t depth, Score alpha, Score beta) {
     return aTactical > bTactical;
   });
 
+  if (ttMove != TT_MOVE_NONE) {
+    const Move ttDecoded = unpack_tt_move(ttMove);
+    auto it = std::find(all_moves.begin(), all_moves.end(), ttDecoded);
+    if (it != all_moves.end() && it != all_moves.begin()) {
+      std::iter_swap(all_moves.begin(), it);
+    }
+  }
+
   Score best = -INF;
+  Move best_move = all_moves.front();
 
   for (const Move& move : all_moves) {
     auto undo_info = pos.do_move(move);
     Score score = -negamax(pos, depth - 1, -beta, -alpha);
     pos.undo_move(undo_info);
 
-    best = std::max(best, score);
+    if (score > best) {
+      best = score;
+      best_move = move;
+    }
+
     alpha = std::max(alpha, score);
     if (alpha >= beta) break;
   }
+
+  TTFlag flag = TT_EXACT;
+  if (best <= alpha_orig) {
+    flag = TT_HIGHER;
+  } else if (best >= beta_orig) {
+    flag = TT_LOWER;
+  }
+
+  tt.store(key, best, depth, flag, pack_tt_move(best_move));
 
   return best;
 }
