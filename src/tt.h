@@ -11,23 +11,6 @@ using std::size_t;
 using TTMove = uint16_t;
 constexpr TTMove TT_MOVE_NONE = 0xFFFF;
 
-inline TTMove pack_tt_move(const Move& m) {
-  return static_cast<TTMove>(
-      (static_cast<uint16_t>(m.from) & 0x3F) |
-      ((static_cast<uint16_t>(m.to) & 0x3F) << 6) |
-      ((static_cast<uint16_t>(m.promotion) & 0x0F) << 12));
-}
-
-inline Move unpack_tt_move(TTMove pm) {
-  if (pm == TT_MOVE_NONE) return Move{};
-
-  Move m{};
-  m.from = static_cast<Square>(pm & 0x3F);
-  m.to = static_cast<Square>((pm >> 6) & 0x3F);
-  m.promotion = static_cast<PieceType>((pm >> 12) & 0x0F);
-  return m;
-}
-
 enum TTFlag : uint8_t {
   TT_NONE,
   TT_EXACT,
@@ -60,4 +43,21 @@ private:
   uint8_t age = 0;
   std::vector<TTEntry> table;
 };
+
+inline TTMove pack_tt_move(const Move& m) {
+  return static_cast<TTMove>(
+      (static_cast<uint16_t>(m.from) & 0x3F) |
+      ((static_cast<uint16_t>(m.to) & 0x3F) << 6) |
+      ((static_cast<uint16_t>(m.promotion) & 0x0F) << 12));
+}
+
+inline Move unpack_tt_move(TTMove pm) {
+  if (pm == TT_MOVE_NONE) return Move{};
+
+  Move m{};
+  m.from = static_cast<Square>(pm & 0x3F);
+  m.to = static_cast<Square>((pm >> 6) & 0x3F);
+  m.promotion = static_cast<PieceType>((pm >> 12) & 0x0F);
+  return m;
+}
 
