@@ -35,6 +35,8 @@ private:
 
   Color humanColor = WHITE;
   bool engineMovePending = false;
+  double lastEngineThinkMs = 0.0;
+  bool hasEngineThinkTime = false;
 
   std::optional<Square> selected;
   Bitboard legalTargets = 0;
