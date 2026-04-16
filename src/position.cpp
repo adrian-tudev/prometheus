@@ -35,10 +35,36 @@ void Position::init_zobrist() {
   zobrist_initialized = true;
 }
 
-int Position::ep_file_from_mask(Bitboard epMask) const {
-  if (!epMask) return -1;
-  Square sq = __builtin_ctzll(epMask);
-  return sq % 8;
+int Position::hashable_ep_file() const {
+  if (!state.enPassant) return -1;
+
+  // Pseudo-legal en passant hashing (not strict legality):
+  // include the EP file only if the side to move has a pawn that could
+  // capture the EP target square by pawn attack geometry.
+  const int ep = __builtin_ctzll(state.enPassant);
+  const int file = ep % 8;
+
+  if (state.white) {
+    if (file > 0) {
+      const int from = ep - 9;
+      if (from >= 0 && board[from] == W_PAWN) return file;
+    }
+    if (file < 7) {
+      const int from = ep - 7;
+      if (from >= 0 && board[from] == W_PAWN) return file;
+    }
+  } else {
+    if (file > 0) {
+      const int from = ep + 7;
+      if (from < 64 && board[from] == B_PAWN) return file;
+    }
+    if (file < 7) {
+      const int from = ep + 9;
+      if (from < 64 && board[from] == B_PAWN) return file;
+    }
+  }
+
+  return -1;
 }
 
 Key Position::compute_hash() const {
@@ -53,7 +79,7 @@ Key Position::compute_hash() const {
 
   h ^= zobrist_castling[state.castling_rights & 0xF];
 
-  const int ep_file = ep_file_from_mask(state.enPassant);
+  const int ep_file = hashable_ep_file();
   if (ep_file >= 0) {
     h ^= zobrist_ep[ep_file];
   }
@@ -97,7 +123,7 @@ Position::UndoInfo Position::do_move(Move move, bool updateState) {
 
   if (updateState) {
     const uint8_t prev_castling = state.castling_rights;
-    const int prev_ep_file = ep_file_from_mask(state.enPassant);
+    const int prev_ep_file = hashable_ep_file();
 
     update_state(move, movedPiece);
 
@@ -106,7 +132,7 @@ Position::UndoInfo Position::do_move(Move move, bool updateState) {
     key ^= zobrist_castling[state.castling_rights & 0xF];
 
     if (prev_ep_file >= 0) key ^= zobrist_ep[prev_ep_file];
-    const int next_ep_file = ep_file_from_mask(state.enPassant);
+    const int next_ep_file = hashable_ep_file();
     if (next_ep_file >= 0) key ^= zobrist_ep[next_ep_file];
   }
 

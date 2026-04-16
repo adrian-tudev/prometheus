@@ -80,7 +80,7 @@ private:
   void set_bitboard(PieceType type);
   void init_zobrist();
   Key compute_hash() const;
-  int ep_file_from_mask(Bitboard epMask) const;
+  int hashable_ep_file() const;
 
   static bool zobrist_initialized;
   static Key zobrist_piece[PIECE_TYPES][64];
