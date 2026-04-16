@@ -36,6 +36,7 @@ set(GUI_DIR ${CMAKE_SOURCE_DIR}/gui)
 
 set(CORE_NO_MAIN_SOURCES
   ${SRC_DIR}/bitboard.cpp
+  ${SRC_DIR}/eval.cpp
   ${SRC_DIR}/engine.cpp
   ${SRC_DIR}/movegen.cpp
   ${SRC_DIR}/position.cpp
@@ -72,6 +73,7 @@ if(PROMETHEUS_BUILD_GUI)
 
   set(GUI_CORE_SOURCES
     ${SRC_DIR}/bitboard.cpp
+    ${SRC_DIR}/eval.cpp
     ${SRC_DIR}/engine.cpp
     ${SRC_DIR}/movegen.cpp
     ${SRC_DIR}/position.cpp

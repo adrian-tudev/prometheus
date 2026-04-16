@@ -13,7 +13,6 @@ public:
   Engine();
   ~Engine();
 
-  Score eval(const Position& pos) const;
   Move ponder();
   void set_position(const Position &pos);
   void set_search_depth(uint8_t depth);
@@ -31,7 +30,6 @@ private:
   std::vector<Key> searchKeyStack;
 
   Score negamax(Position& pos, uint8_t depth, Score alpha, Score beta);
-  Score material_score(const Position& pos) const;
   bool is_threefold(const Position& pos) const;
 };
 

@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "bitboard.h"
+#include "eval.h"
 #include "movegen.h"
 #include "utils.h"
 
@@ -87,7 +88,7 @@ void UI::loop() {
       continue;
     }
     if (line == "eval" || line == "e") {
-      Score score = engine.eval(current);
+      Score score = eval(current);
       printf("eval: %d\n", score);
       continue;
     }
