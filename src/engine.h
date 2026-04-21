@@ -19,7 +19,7 @@ public:
   uint8_t get_search_depth() const;
 
   static const Score INF = 1e9;
-  static const uint8_t DEFAULT_SEARCH_DEPTH = 5;
+  static const uint8_t DEFAULT_SEARCH_DEPTH = 6;
   static const uint8_t MIN_SEARCH_DEPTH = 1;
   static const uint8_t MAX_SEARCH_DEPTH = 10;
 

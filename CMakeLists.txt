@@ -51,7 +51,7 @@ add_executable(prometheus
 )
 target_include_directories(prometheus PRIVATE ${SRC_DIR})
 
-add_executable(perft
+add_executable(perft EXCLUDE_FROM_ALL
   ${TEST_DIR}/perft.cpp
   ${CORE_NO_MAIN_SOURCES}
 )
@@ -64,7 +64,7 @@ elseif(MSVC)
   target_compile_options(perft PRIVATE /O2 /DNDEBUG)
 endif()
 
-option(PROMETHEUS_BUILD_GUI "Build SDL GUI target" OFF)
+option(PROMETHEUS_BUILD_GUI "Build SDL GUI target" ON)
 
 if(PROMETHEUS_BUILD_GUI)
   find_package(PkgConfig REQUIRED)
